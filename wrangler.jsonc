@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "hikiyomi-db",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "b211f9aa-3fa7-45d4-99c2-ee9773636593",
       "migrations_dir": "migrations"
     }
   ]
