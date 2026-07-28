@@ -1,0 +1,4 @@
+LINE_CHANNEL_SECRET=replace_me
+LINE_CHANNEL_ACCESS_TOKEN=replace_me
+GEMINI_API_KEY=replace_me
+FORTUNE_SALT=replace_with_a_long_random_value
