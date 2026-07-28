@@ -19,7 +19,8 @@ const FORBIDDEN = [
   /追うべき/,
   /借金/,
   /確実/,
-  /保証/
+  /勝利.{0,8}保証/,
+  /結果を保証(?:する|します|できる|される)/
 ];
 
 export async function createNarrative(
