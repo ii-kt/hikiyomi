@@ -5,10 +5,10 @@ const BRAND = "#11153D";
 const GOLD = "#D6A92F";
 const MUTED = "#6B7280";
 
-export function ageConfirmationMessage(): LineMessage {
+export function birthDateMessage(): LineMessage {
   return {
     type: "flex",
-    altText: "ヒキヨミは18歳以上向けのスロット占いです",
+    altText: "生年月日を登録してください",
     contents: {
       type: "bubble",
       header: {
@@ -18,46 +18,9 @@ export function ageConfirmationMessage(): LineMessage {
         paddingAll: "20px",
         contents: [
           { type: "text", text: "ヒキヨミ", color: "#FFFFFF", weight: "bold", size: "xl" },
-          { type: "text", text: "毎日のスロット占い", color: "#E5E7EB", size: "sm", margin: "sm" }
+          { type: "text", text: "最初に生年月日を登録", color: "#E5E7EB", size: "sm", margin: "sm" }
         ]
       },
-      body: {
-        type: "box",
-        layout: "vertical",
-        spacing: "md",
-        contents: [
-          { type: "text", text: "このサービスは18歳以上の方が対象です。", wrap: true, weight: "bold" },
-          { type: "text", text: "占い・娯楽として提供し、実際の設定や遊技結果を保証するものではありません。", wrap: true, size: "sm", color: MUTED }
-        ]
-      },
-      footer: {
-        type: "box",
-        layout: "vertical",
-        spacing: "sm",
-        contents: [
-          {
-            type: "button",
-            style: "primary",
-            color: BRAND,
-            action: { type: "postback", label: "18歳以上です", data: "action=adult_yes", displayText: "18歳以上です" }
-          },
-          {
-            type: "button",
-            style: "secondary",
-            action: { type: "postback", label: "18歳未満です", data: "action=adult_no", displayText: "18歳未満です" }
-          }
-        ]
-      }
-    }
-  };
-}
-
-export function birthDateMessage(): LineMessage {
-  return {
-    type: "flex",
-    altText: "生年月日を登録してください",
-    contents: {
-      type: "bubble",
       body: {
         type: "box",
         layout: "vertical",
@@ -65,7 +28,7 @@ export function birthDateMessage(): LineMessage {
         paddingAll: "22px",
         contents: [
           { type: "text", text: "生年月日を登録", weight: "bold", size: "xl" },
-          { type: "text", text: "本人専用の日運を計算するために使用します。LINE上には公開されません。", wrap: true, size: "sm", color: MUTED },
+          { type: "text", text: "本人専用の日運と18歳以上の確認に使用します。LINE上には公開されません。", wrap: true, size: "sm", color: MUTED },
           {
             type: "button",
             style: "primary",
@@ -80,7 +43,52 @@ export function birthDateMessage(): LineMessage {
               initial: "1990-01-01"
             }
           },
-          { type: "text", text: "例：1996/04/18 とメッセージで送っても登録できます。", wrap: true, size: "xs", color: MUTED }
+          { type: "text", text: "例：1996/04/18 とメッセージで送っても登録できます。", wrap: true, size: "xs", color: MUTED },
+          { type: "text", text: "ヒキヨミは18歳以上向けの占い・娯楽サービスです。", wrap: true, size: "xxs", color: MUTED }
+        ]
+      }
+    }
+  };
+}
+
+export function birthTimeMessage(): LineMessage {
+  return {
+    type: "flex",
+    altText: "出生時刻を登録するか、不明を選択してください",
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        paddingAll: "22px",
+        contents: [
+          { type: "text", text: "出生時刻", weight: "bold", size: "xl" },
+          { type: "text", text: "分かる場合は結果の個人化に使います。分からなくても減点や不利益はありません。", wrap: true, size: "sm", color: MUTED },
+          {
+            type: "button",
+            style: "primary",
+            color: BRAND,
+            margin: "lg",
+            action: {
+              type: "datetimepicker",
+              label: "出生時刻を選ぶ",
+              data: "action=set_birthtime",
+              mode: "time",
+              initial: "12:00"
+            }
+          },
+          {
+            type: "button",
+            style: "secondary",
+            action: {
+              type: "postback",
+              label: "出生時刻は分からない",
+              data: "action=birthtime_unknown",
+              displayText: "出生時刻は分からない"
+            }
+          },
+          { type: "text", text: "例：14:20 とメッセージで送ることもできます。", wrap: true, size: "xs", color: MUTED }
         ]
       }
     }
@@ -100,7 +108,7 @@ export function registeredMessage(): LineMessage {
         paddingAll: "22px",
         contents: [
           { type: "text", text: "登録完了", weight: "bold", size: "xl" },
-          { type: "text", text: "準備ができました。今日の結果は同じ日に何度見ても変わりません。", wrap: true, size: "sm", color: MUTED },
+          { type: "text", text: "生年月日と任意の出生時刻を登録しました。今日の結果は同じ日に何度見ても変わりません。", wrap: true, size: "sm", color: MUTED },
           {
             type: "button",
             style: "primary",
