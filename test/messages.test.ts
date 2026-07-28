@@ -100,7 +100,7 @@ describe("LINE UI messages", () => {
     const serialized = json(reasonMessage(fortune, baseUrl));
     expect(serialized).toContain("74%");
     expect(serialized).toContain("六十干支距離");
-    expect(serialized).toContain("勝率や的中確率ではありません");
+    expect(serialized).toContain("勝敗予測の確率ではありません");
   });
 
   it("provides guided navigation for help and unknown text", () => {
