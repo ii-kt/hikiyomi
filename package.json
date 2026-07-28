@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "db:migrate:local": "wrangler d1 migrations apply hikiyomi-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply hikiyomi-db --remote",
+    "deploy": "npm run db:migrate:remote && wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "richmenu:build": "node scripts/setup-rich-menu.mjs --dry-run",
     "richmenu:setup": "node scripts/setup-rich-menu.mjs",
     "typecheck": "tsc --noEmit",
