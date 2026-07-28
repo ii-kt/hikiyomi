@@ -1,0 +1,32 @@
+name: Setup LINE rich menu
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Rich menu version label
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Japanese fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+      - run: npm install
+      - name: Generate, validate, upload, and set default rich menu
+        run: npm run richmenu:setup
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          RICH_MENU_VERSION: ${{ inputs.version }}
