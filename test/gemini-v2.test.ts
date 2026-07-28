@@ -45,19 +45,20 @@ describe("V2 Gemini narrative", () => {
     const fortune = await draft();
     const generated =
       "暦の周期と判断力の指標が今日の軸です。台選び運を活かすには、最初に決めた条件を増やさず、冷静さ運の弱い部分は時計で区切って補うのが適切です。ラッキー要素は結果の保証ではなく、迷った場面で気持ちを整える目印として扱ってください。";
-    const fetchMock = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: JSON.stringify({ narrative: generated }) }]
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: JSON.stringify({ narrative: generated }) }]
+                }
               }
-            }
-          ]
-        }),
-        { status: 200, headers: { "content-type": "application/json" } }
-      )
+            ]
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        )
     );
     vi.stubGlobal("fetch", fetchMock);
 
@@ -69,8 +70,9 @@ describe("V2 Gemini narrative", () => {
     expect(result).toBe(generated);
     expect(fetchMock).toHaveBeenCalledOnce();
 
-    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    const body = JSON.parse(String(requestInit.body)) as {
+    const requestInit = fetchMock.mock.calls[0]?.[1];
+    expect(requestInit).toBeDefined();
+    const body = JSON.parse(String(requestInit?.body)) as {
       generationConfig: {
         responseMimeType: string;
         responseJsonSchema: unknown;
@@ -88,26 +90,27 @@ describe("V2 Gemini narrative", () => {
 
   it("rejects unsafe model output and returns the fallback", async () => {
     const fortune = await draft();
-    const fetchMock = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [
-                  {
-                    text: JSON.stringify({
-                      narrative:
-                        "今日は必ず勝てるので追加投資して取り返せます。高設定を狙って追うべきです。"
-                    })
-                  }
-                ]
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    {
+                      text: JSON.stringify({
+                        narrative:
+                          "今日は必ず勝てるので追加投資して取り返せます。高設定を狙って追うべきです。"
+                      })
+                    }
+                  ]
+                }
               }
-            }
-          ]
-        }),
-        { status: 200, headers: { "content-type": "application/json" } }
-      )
+            ]
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        )
     );
     vi.stubGlobal("fetch", fetchMock);
 
