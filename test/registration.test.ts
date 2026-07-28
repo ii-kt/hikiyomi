@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { normalizeBirthTimeText } from "../src/date";
 import { birthDateMessage, birthTimeMessage } from "../src/messages";
-import { getRegistrationStep, isBirthTimeUnknownText } from "../src/registration";
+import {
+  getRegistrationStep,
+  isBirthTimeUnknownText
+} from "../src/registration";
 import type { UserRecord } from "../src/types";
 import { foundationInputFromUser } from "../src/v2/user-input";
+
+const baseUrl = "https://hikiyomi.example.workers.dev";
 
 function user(overrides: Partial<UserRecord> = {}): UserRecord {
   return {
@@ -24,8 +29,10 @@ function user(overrides: Partial<UserRecord> = {}): UserRecord {
 describe("registration flow", () => {
   it("starts with birth date instead of a separate age confirmation", () => {
     expect(getRegistrationStep(null)).toBe("birth-date");
-    expect(JSON.stringify(birthDateMessage())).not.toContain("adult_yes");
-    expect(JSON.stringify(birthDateMessage())).not.toContain("18歳以上です");
+    expect(JSON.stringify(birthDateMessage(baseUrl))).not.toContain("adult_yes");
+    expect(JSON.stringify(birthDateMessage(baseUrl))).not.toContain(
+      "18歳以上です"
+    );
   });
 
   it("moves to birth time after an adult birth date is stored", () => {
@@ -36,7 +43,7 @@ describe("registration flow", () => {
     });
 
     expect(getRegistrationStep(pending)).toBe("birth-time");
-    const message = JSON.stringify(birthTimeMessage());
+    const message = JSON.stringify(birthTimeMessage(baseUrl));
     expect(message).toContain("set_birthtime");
     expect(message).toContain("birthtime_unknown");
   });
@@ -44,12 +51,20 @@ describe("registration flow", () => {
   it("accepts known or unknown birth time as registration complete", () => {
     expect(
       getRegistrationStep(
-        user({ birth_date: "1996-04-18", birth_time: "14:20", birth_time_known: 1 })
+        user({
+          birth_date: "1996-04-18",
+          birth_time: "14:20",
+          birth_time_known: 1
+        })
       )
     ).toBe("complete");
     expect(
       getRegistrationStep(
-        user({ birth_date: "1996-04-18", birth_time: null, birth_time_known: 0 })
+        user({
+          birth_date: "1996-04-18",
+          birth_time: null,
+          birth_time_known: 0
+        })
       )
     ).toBe("complete");
   });
@@ -64,7 +79,11 @@ describe("registration flow", () => {
 describe("V2 user input bridge", () => {
   it("passes a known birth time to the V2 foundation", () => {
     const input = foundationInputFromUser({
-      user: user({ birth_date: "1996-04-18", birth_time: "14:20", birth_time_known: 1 }),
+      user: user({
+        birth_date: "1996-04-18",
+        birth_time: "14:20",
+        birth_time_known: 1
+      }),
       userId: "U_TEST",
       targetDate: "2026-07-28",
       salt: "test-salt"
@@ -76,7 +95,11 @@ describe("V2 user input bridge", () => {
 
   it("passes unknown birth time without fabricating a time", () => {
     const input = foundationInputFromUser({
-      user: user({ birth_date: "1996-04-18", birth_time: null, birth_time_known: 0 }),
+      user: user({
+        birth_date: "1996-04-18",
+        birth_time: null,
+        birth_time_known: 0
+      }),
       userId: "U_TEST",
       targetDate: "2026-07-28",
       salt: "test-salt"
