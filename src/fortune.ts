@@ -39,7 +39,7 @@ const THEMES = [
   "良い流れの後ほど冷静に区切る",
   "違和感を見過ごさず早めに切り替える",
   "結果を追うより観察を楽しむ",
-  "今日は短く区切るほど運を保ちやすい",
+  "短く区切るほど運を保ちやすい",
   "勢いより確認を一つ増やす"
 ];
 
@@ -107,7 +107,7 @@ export function fallbackNarrative(
   const high = [...entries].sort((a, b) => b[1] - a[1])[0] ?? entries[0];
   const low = [...entries].sort((a, b) => a[1] - b[1])[0] ?? entries[0];
 
-  return `今日は${high[0]}の運が前に出やすい一方、${low[0]}は意識して補いたい日です。${result.theme}ことが、今日の運を扱うポイント。末尾${result.luckyDigit}は、同条件で迷ったときの遊び要素として使ってください。`;
+  return `今日は${high[0]}の運が前に出やすい一方、${low[0]}は意識して補いたい日です。今日のテーマは「${result.theme}」。末尾${result.luckyDigit}は、同条件で迷ったときの遊び要素として使ってください。`;
 }
 
 function reduceNumber(value: string): number {
