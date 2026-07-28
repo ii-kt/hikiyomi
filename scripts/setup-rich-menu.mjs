@@ -1,53 +1,26 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import process from "node:process";
 import sharp from "sharp";
 
-const WIDTH = 2500;
-const HEIGHT = 843;
-const NAME_PREFIX = "hikiyomi-main-";
+const CONFIG_URL = new URL("../config/rich-menu.json", import.meta.url);
 const OUTPUT = ".tmp/rich-menu.png";
 const dryRun = process.argv.includes("--dry-run");
-const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+const token = process.env.LINE_CHANNEL_ACCESS_TOKEN?.trim();
+const config = JSON.parse(await readFile(CONFIG_URL, "utf8"));
+
+validateConfig(config);
+
+const { namePrefix: NAME_PREFIX, ...definitionBase } = config;
+const WIDTH = definitionBase.size.width;
+const HEIGHT = definitionBase.size.height;
 const defaultVersion = new Date()
   .toISOString()
   .slice(0, 10)
   .replaceAll("-", "");
 const version = process.env.RICH_MENU_VERSION?.trim() || defaultVersion;
-
 const definition = {
-  size: { width: WIDTH, height: HEIGHT },
-  selected: true,
-  name: `${NAME_PREFIX}${version}`,
-  chatBarText: "ヒキヨミメニュー",
-  areas: [
-    {
-      bounds: { x: 0, y: 0, width: 834, height: HEIGHT },
-      action: {
-        type: "postback",
-        label: "今日のスロ運",
-        data: "action=fortune",
-        displayText: "今日のスロ運"
-      }
-    },
-    {
-      bounds: { x: 834, y: 0, width: 833, height: HEIGHT },
-      action: {
-        type: "postback",
-        label: "登録情報",
-        data: "action=settings",
-        displayText: "登録情報"
-      }
-    },
-    {
-      bounds: { x: 1667, y: 0, width: 833, height: HEIGHT },
-      action: {
-        type: "postback",
-        label: "使い方",
-        data: "action=help",
-        displayText: "使い方"
-      }
-    }
-  ]
+  ...definitionBase,
+  name: `${NAME_PREFIX}${version}`
 };
 
 await mkdir(".tmp", { recursive: true });
@@ -191,6 +164,48 @@ function authHeaders() {
 async function lineError(response) {
   const body = await response.text();
   return new Error(`LINE API ${response.status}: ${body.slice(0, 500)}`);
+}
+
+function validateConfig(value) {
+  if (!value || typeof value !== "object") {
+    throw new Error("Rich menu config must be an object");
+  }
+  if (value.size?.width !== 2500 || value.size?.height !== 843) {
+    throw new Error("Rich menu canvas must be 2500x843");
+  }
+  if (
+    typeof value.namePrefix !== "string" ||
+    !value.namePrefix.startsWith("hikiyomi-")
+  ) {
+    throw new Error("Rich menu namePrefix is invalid");
+  }
+  if (
+    typeof value.chatBarText !== "string" ||
+    value.chatBarText.length < 1 ||
+    value.chatBarText.length > 14
+  ) {
+    throw new Error("Rich menu chatBarText must be 1-14 characters");
+  }
+  if (!Array.isArray(value.areas) || value.areas.length !== 3) {
+    throw new Error("Rich menu must define exactly three areas");
+  }
+
+  const sorted = [...value.areas].sort((a, b) => a.bounds.x - b.bounds.x);
+  let cursor = 0;
+  for (const area of sorted) {
+    if (
+      area.bounds.x !== cursor ||
+      area.bounds.y !== 0 ||
+      area.bounds.height !== value.size.height ||
+      area.bounds.width <= 0
+    ) {
+      throw new Error("Rich menu areas must cover the canvas without gaps");
+    }
+    cursor += area.bounds.width;
+  }
+  if (cursor !== value.size.width) {
+    throw new Error("Rich menu areas do not cover the full width");
+  }
 }
 
 function renderSvg() {
