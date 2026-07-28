@@ -3,10 +3,13 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2022", "WebWorker"],
+    "lib": ["ES2022"],
+    "types": ["@cloudflare/workers-types"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
@@ -14,7 +17,6 @@
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.d.ts",
     "test/**/*.ts",
     "vitest.config.ts"
   ]
