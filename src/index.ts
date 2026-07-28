@@ -6,8 +6,7 @@ import {
   normalizeBirthTimeText,
   todayJst
 } from "./date";
-import { createFortune } from "./fortune";
-import { createNarrative } from "./gemini";
+import { createV2Narrative } from "./gemini";
 import { privacyHtml, termsHtml } from "./legal";
 import { replyMessages } from "./line";
 import {
@@ -29,7 +28,18 @@ import {
   setBirthTime,
   setBirthTimeUnknown
 } from "./storage";
-import type { Env, FortuneResult, LineMessage, LineWebhookBody, LineWebhookEvent, UserRecord } from "./types";
+import type {
+  Env,
+  FortuneResult,
+  LineMessage,
+  LineWebhookBody,
+  LineWebhookEvent,
+  UserRecord
+} from "./types";
+import {
+  createV2Fortune,
+  V2_ENGINE_VERSION
+} from "./v2/fortune";
 import { buildFoundationAssessment } from "./v2/rules";
 import { foundationInputFromUser } from "./v2/user-input";
 
@@ -200,33 +210,30 @@ async function handleText(
 async function sendFortune(env: Env, userId: string, replyToken: string): Promise<void> {
   const user = await getUser(env.DB, userId);
   const step = getRegistrationStep(user);
-  if (step !== "complete" || !user) {
+  if (step !== "complete" || !user?.birth_date) {
     await replyMessages(env, replyToken, [registrationMessage(user)]);
     return;
   }
 
   const date = todayJst();
-
-  // V2の入力経路を常時検証する。表示結果の完全移行は第2工程Cで行う。
-  await buildFoundationAssessment(
-    foundationInputFromUser({
-      user,
-      userId,
-      targetDate: date,
-      salt: env.FORTUNE_SALT
-    })
-  );
-
   let fortune = await getFortune(env.DB, userId, date);
-  if (!fortune) {
-    const core = await createFortune({
-      userId,
-      birthDate: user.birth_date,
-      date,
-      salt: env.FORTUNE_SALT
-    });
-    const narrative = await createNarrative(env, core);
-    const candidate: FortuneResult = { ...core, narrative };
+
+  if (
+    !fortune ||
+    fortune.engineVersion !== V2_ENGINE_VERSION ||
+    !fortune.analysis
+  ) {
+    const assessment = await buildFoundationAssessment(
+      foundationInputFromUser({
+        user,
+        userId,
+        targetDate: date,
+        salt: env.FORTUNE_SALT
+      })
+    );
+    const draft = createV2Fortune(assessment);
+    const narrative = await createV2Narrative(env, draft);
+    const candidate: FortuneResult = { ...draft, narrative };
     await saveFortune(env.DB, userId, candidate);
     fortune = (await getFortune(env.DB, userId, date)) ?? candidate;
   }
