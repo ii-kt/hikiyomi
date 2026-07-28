@@ -20,14 +20,6 @@ export async function ensureUser(db: D1Database, userId: string): Promise<void> 
     .run();
 }
 
-export async function setAdultConfirmed(db: D1Database, userId: string): Promise<void> {
-  await ensureUser(db, userId);
-  await db
-    .prepare("UPDATE users SET adult_confirmed = 1, updated_at = ? WHERE user_id = ?")
-    .bind(nowIso(), userId)
-    .run();
-}
-
 export async function setBirthDate(
   db: D1Database,
   userId: string,
@@ -36,9 +28,46 @@ export async function setBirthDate(
   await ensureUser(db, userId);
   await db
     .prepare(
-      "UPDATE users SET adult_confirmed = 1, birth_date = ?, updated_at = ? WHERE user_id = ?"
+      `UPDATE users
+       SET adult_confirmed = 1,
+           birth_date = ?,
+           birth_time = NULL,
+           birth_time_known = -1,
+           updated_at = ?
+       WHERE user_id = ?`
     )
     .bind(birthDate, nowIso(), userId)
+    .run();
+}
+
+export async function setBirthTime(
+  db: D1Database,
+  userId: string,
+  birthTime: string
+): Promise<void> {
+  await ensureUser(db, userId);
+  await db
+    .prepare(
+      `UPDATE users
+       SET birth_time = ?, birth_time_known = 1, updated_at = ?
+       WHERE user_id = ?`
+    )
+    .bind(birthTime, nowIso(), userId)
+    .run();
+}
+
+export async function setBirthTimeUnknown(
+  db: D1Database,
+  userId: string
+): Promise<void> {
+  await ensureUser(db, userId);
+  await db
+    .prepare(
+      `UPDATE users
+       SET birth_time = NULL, birth_time_known = 0, updated_at = ?
+       WHERE user_id = ?`
+    )
+    .bind(nowIso(), userId)
     .run();
 }
 
