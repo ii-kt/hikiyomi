@@ -1,14 +1,20 @@
 import { nowIso } from "./date";
 import type { FortuneResult, UserRecord } from "./types";
 
-export async function getUser(db: D1Database, userId: string): Promise<UserRecord | null> {
+export async function getUser(
+  db: D1Database,
+  userId: string
+): Promise<UserRecord | null> {
   return db
     .prepare("SELECT * FROM users WHERE user_id = ?")
     .bind(userId)
     .first<UserRecord>();
 }
 
-export async function ensureUser(db: D1Database, userId: string): Promise<void> {
+export async function ensureUser(
+  db: D1Database,
+  userId: string
+): Promise<void> {
   const now = nowIso();
   await db
     .prepare(
@@ -38,6 +44,7 @@ export async function setBirthDate(
     )
     .bind(birthDate, nowIso(), userId)
     .run();
+  await clearUserFortunes(db, userId);
 }
 
 export async function setBirthTime(
@@ -54,6 +61,7 @@ export async function setBirthTime(
     )
     .bind(birthTime, nowIso(), userId)
     .run();
+  await clearUserFortunes(db, userId);
 }
 
 export async function setBirthTimeUnknown(
@@ -69,13 +77,25 @@ export async function setBirthTimeUnknown(
     )
     .bind(nowIso(), userId)
     .run();
+  await clearUserFortunes(db, userId);
 }
 
-export async function markUserInactive(db: D1Database, userId: string): Promise<void> {
+export async function markUserInactive(
+  db: D1Database,
+  userId: string
+): Promise<void> {
   await db
     .prepare("UPDATE users SET status = 'inactive', updated_at = ? WHERE user_id = ?")
     .bind(nowIso(), userId)
     .run();
+}
+
+export async function deleteUserData(
+  db: D1Database,
+  userId: string
+): Promise<void> {
+  await clearUserFortunes(db, userId);
+  await db.prepare("DELETE FROM users WHERE user_id = ?").bind(userId).run();
 }
 
 export async function getFortune(
@@ -84,7 +104,9 @@ export async function getFortune(
   date: string
 ): Promise<FortuneResult | null> {
   const row = await db
-    .prepare("SELECT payload_json FROM daily_fortunes WHERE user_id = ? AND fortune_date = ?")
+    .prepare(
+      "SELECT payload_json FROM daily_fortunes WHERE user_id = ? AND fortune_date = ?"
+    )
     .bind(userId, date)
     .first<{ payload_json: string }>();
 
@@ -122,4 +144,14 @@ export async function claimWebhookEvent(
     .bind(webhookEventId, nowIso())
     .run();
   return (result.meta.changes ?? 0) > 0;
+}
+
+async function clearUserFortunes(
+  db: D1Database,
+  userId: string
+): Promise<void> {
+  await db
+    .prepare("DELETE FROM daily_fortunes WHERE user_id = ?")
+    .bind(userId)
+    .run();
 }
