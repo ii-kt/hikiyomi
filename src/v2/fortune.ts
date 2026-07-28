@@ -4,6 +4,7 @@ import type {
   FortuneResult
 } from "../types";
 import type {
+  FiveElement,
   FoundationAssessment,
   MetricKey,
   RuleContribution
@@ -64,7 +65,7 @@ const METRIC_LABELS: Record<MetricKey, string> = {
   switching: "切替力"
 };
 
-const ELEMENT_COLORS: Record<string, FortuneItem> = {
+const ELEMENT_COLORS: Record<FiveElement, FortuneItem> = {
   wood: { name: "エメラルド", meaning: "選択肢を整理し、伸ばす方向を一つに絞る色" },
   fire: { name: "朱色", meaning: "動き出す勢いを、短い区切りへ変える色" },
   earth: { name: "琥珀色", meaning: "足元の条件と予定を確認する色" },
@@ -191,8 +192,7 @@ export function createV2Fortune(
     calmness,
     luckyDigit,
     luckyNumbers: [firstNumber, secondNumber],
-    luckyColor:
-      ELEMENT_COLORS[facts.targetDay.stem.element] ?? ELEMENT_COLORS.water,
+    luckyColor: ELEMENT_COLORS[facts.targetDay.stem.element],
     luckyItem: LOW_SCORE_ITEMS[weakest],
     machineStyle: HIGH_SCORE_STYLES[strongest],
     luckyTime: `${String(startHour).padStart(2, "0")}:00〜${String(startHour + 1).padStart(2, "0")}:00`,
@@ -255,6 +255,7 @@ function createAnalysis(
   cycleDistance: number,
   numerologyDistance: number
 ): FortuneAnalysis {
+  void displayScores;
   const consensusValues = (Object.keys(SCORE_INPUTS) as DisplayScoreKey[]).map(
     (key) => scoreConsensus(assessment, key)
   );
