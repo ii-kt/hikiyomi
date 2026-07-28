@@ -40,3 +40,25 @@ export function normalizeBirthDateText(text: string): string | null {
   const normalized = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
   return isValidIsoDate(normalized) ? normalized : null;
 }
+
+export function isValidTime(value: string): boolean {
+  const match = value.match(/^(\d{2}):(\d{2})$/);
+  if (!match) return false;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+}
+
+export function normalizeBirthTimeText(text: string): string | null {
+  const compact = text.trim()
+    .replace(/時/g, ":")
+    .replace(/分/g, "")
+    .replace(/[.]/g, ":");
+
+  const match = compact.match(/^(\d{1,2}):(\d{1,2})$/);
+  if (!match) return null;
+  const [, hour, minute] = match;
+  if (!hour || !minute) return null;
+  const normalized = `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+  return isValidTime(normalized) ? normalized : null;
+}
