@@ -16,17 +16,38 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           package-manager-cache: false
+
+      - name: Verify LINE token secret
+        shell: bash
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$LINE_CHANNEL_ACCESS_TOKEN" ]; then
+            echo "::error title=Missing repository secret::LINE_CHANNEL_ACCESS_TOKEN is not configured in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "LINE_CHANNEL_ACCESS_TOKEN is configured."
+
       - name: Install Japanese fonts
         run: |
           sudo apt-get update
           sudo apt-get install -y fonts-noto-cjk
-      - run: npm install
-      - name: Generate, validate, upload, and set default rich menu
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate and validate rich menu image
+        run: npm run richmenu:build
+
+      - name: Upload and set default rich menu
         run: npm run richmenu:setup
         env:
           LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
