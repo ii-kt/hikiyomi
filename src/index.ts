@@ -7,18 +7,25 @@ import {
   todayJst
 } from "./date";
 import { createV2Narrative } from "./gemini";
-import { privacyHtml, termsHtml } from "./legal";
+import { helpHtml, homeHtml, privacyHtml, termsHtml } from "./legal";
 import { replyMessages } from "./line";
 import {
   birthDateMessage,
   birthTimeMessage,
+  dataDeletedMessage,
+  deleteConfirmationMessage,
   fortuneMessage,
+  helpMessage,
+  reasonMessage,
   registeredMessage,
-  simpleText
+  settingsMessage,
+  simpleText,
+  unknownMessage
 } from "./messages";
 import { getRegistrationStep, isBirthTimeUnknownText } from "./registration";
 import {
   claimWebhookEvent,
+  deleteUserData,
   ensureUser,
   getFortune,
   getUser,
@@ -44,17 +51,25 @@ import { buildFoundationAssessment } from "./v2/rules";
 import { foundationInputFromUser } from "./v2/user-input";
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext
+  ): Promise<Response> {
     const url = new URL(request.url);
+    const baseUrl = url.origin;
 
     if (request.method === "GET" && url.pathname === "/") {
-      return Response.json({ service: "hikiyomi", status: "ok" });
+      return html(homeHtml(baseUrl));
+    }
+    if (request.method === "GET" && url.pathname === "/help") {
+      return html(helpHtml(baseUrl));
     }
     if (request.method === "GET" && url.pathname === "/privacy") {
-      return new Response(privacyHtml(), { headers: { "content-type": "text/html; charset=utf-8" } });
+      return html(privacyHtml());
     }
     if (request.method === "GET" && url.pathname === "/terms") {
-      return new Response(termsHtml(), { headers: { "content-type": "text/html; charset=utf-8" } });
+      return html(termsHtml());
     }
     if (request.method !== "POST" || url.pathname !== "/webhook") {
       return new Response("Not Found", { status: 404 });
@@ -62,7 +77,11 @@ export default {
 
     const body = await request.text();
     const signature = request.headers.get("x-line-signature") ?? "";
-    const valid = await verifyLineSignature(body, signature, env.LINE_CHANNEL_SECRET);
+    const valid = await verifyLineSignature(
+      body,
+      signature,
+      env.LINE_CHANNEL_SECRET
+    );
     if (!valid) return new Response("Invalid signature", { status: 401 });
 
     let payload: LineWebhookBody;
@@ -73,12 +92,18 @@ export default {
     }
 
     const events = payload.events ?? [];
-    ctx.waitUntil(Promise.all(events.map((event) => handleEvent(event, env))));
+    ctx.waitUntil(
+      Promise.all(events.map((event) => handleEvent(event, env, baseUrl)))
+    );
     return new Response("OK");
   }
 };
 
-async function handleEvent(event: LineWebhookEvent, env: Env): Promise<void> {
+async function handleEvent(
+  event: LineWebhookEvent,
+  env: Env,
+  baseUrl: string
+): Promise<void> {
   const userId = event.source?.userId;
   if (!userId) return;
 
@@ -96,17 +121,23 @@ async function handleEvent(event: LineWebhookEvent, env: Env): Promise<void> {
 
   if (event.type === "follow") {
     const user = await getUser(env.DB, userId);
-    await replyMessages(env, replyToken, [registrationMessage(user)]);
+    await replyMessages(env, replyToken, [registrationMessage(user, baseUrl)]);
     return;
   }
 
   if (event.type === "postback") {
-    await handlePostback(event, env, userId, replyToken);
+    await handlePostback(event, env, userId, replyToken, baseUrl);
     return;
   }
 
   if (event.type === "message" && event.message?.type === "text") {
-    await handleText(event.message.text ?? "", env, userId, replyToken);
+    await handleText(
+      event.message.text ?? "",
+      env,
+      userId,
+      replyToken,
+      baseUrl
+    );
   }
 }
 
@@ -114,19 +145,41 @@ async function handlePostback(
   event: LineWebhookEvent,
   env: Env,
   userId: string,
-  replyToken: string
+  replyToken: string,
+  baseUrl: string
 ): Promise<void> {
   const params = new URLSearchParams(event.postback?.data ?? "");
   const action = params.get("action");
 
+  if (action === "start_registration" || action === "edit_birthdate") {
+    await replyMessages(env, replyToken, [
+      birthDateMessage(baseUrl, action === "edit_birthdate")
+    ]);
+    return;
+  }
+
   if (action === "set_birthdate") {
     const birthDate = event.postback?.params?.date;
     if (!birthDate || !isAdultBirthDate(birthDate)) {
-      await replyMessages(env, replyToken, [simpleText("ヒキヨミは18歳以上向けです。生年月日を確認してください。")]);
+      await replyMessages(env, replyToken, [
+        simpleText(
+          "ヒキヨミは18歳以上向けです。生年月日を確認してください。"
+        )
+      ]);
       return;
     }
     await setBirthDate(env.DB, userId, birthDate);
-    await replyMessages(env, replyToken, [birthTimeMessage()]);
+    await replyMessages(env, replyToken, [birthTimeMessage(baseUrl)]);
+    return;
+  }
+
+  if (action === "edit_birthtime") {
+    const user = await getUser(env.DB, userId);
+    if (!user?.birth_date) {
+      await replyMessages(env, replyToken, [birthDateMessage(baseUrl)]);
+      return;
+    }
+    await replyMessages(env, replyToken, [birthTimeMessage(baseUrl, true)]);
     return;
   }
 
@@ -134,52 +187,92 @@ async function handlePostback(
     const birthTime = event.postback?.params?.time;
     const user = await getUser(env.DB, userId);
     if (!user?.birth_date) {
-      await replyMessages(env, replyToken, [birthDateMessage()]);
+      await replyMessages(env, replyToken, [birthDateMessage(baseUrl)]);
       return;
     }
     if (!birthTime || !isValidTime(birthTime)) {
-      await replyMessages(env, replyToken, [simpleText("出生時刻を確認できませんでした。時刻を選び直してください。")]);
+      await replyMessages(env, replyToken, [
+        simpleText(
+          "出生時刻を確認できませんでした。時刻を選び直してください。"
+        )
+      ]);
       return;
     }
     await setBirthTime(env.DB, userId, birthTime);
-    await replyMessages(env, replyToken, [registeredMessage()]);
+    await replyMessages(env, replyToken, [registeredMessage(baseUrl)]);
     return;
   }
 
   if (action === "birthtime_unknown") {
     const user = await getUser(env.DB, userId);
     if (!user?.birth_date) {
-      await replyMessages(env, replyToken, [birthDateMessage()]);
+      await replyMessages(env, replyToken, [birthDateMessage(baseUrl)]);
       return;
     }
     await setBirthTimeUnknown(env.DB, userId);
-    await replyMessages(env, replyToken, [registeredMessage()]);
+    await replyMessages(env, replyToken, [registeredMessage(baseUrl)]);
     return;
   }
 
   if (action === "fortune") {
-    await sendFortune(env, userId, replyToken);
+    await sendFortune(env, userId, replyToken, baseUrl);
     return;
   }
 
-  await replyMessages(env, replyToken, [simpleText("操作を確認できませんでした。『今日のスロ運』と送ってください。")]);
+  if (action === "reason") {
+    await sendReason(env, userId, replyToken, baseUrl);
+    return;
+  }
+
+  if (action === "settings") {
+    const user = await getUser(env.DB, userId);
+    if (getRegistrationStep(user) !== "complete" || !user) {
+      await replyMessages(env, replyToken, [registrationMessage(user, baseUrl)]);
+      return;
+    }
+    await replyMessages(env, replyToken, [settingsMessage(user, baseUrl)]);
+    return;
+  }
+
+  if (action === "help") {
+    await replyMessages(env, replyToken, [helpMessage(baseUrl)]);
+    return;
+  }
+
+  if (action === "delete_confirm") {
+    await replyMessages(env, replyToken, [deleteConfirmationMessage()]);
+    return;
+  }
+
+  if (action === "delete_account") {
+    await deleteUserData(env.DB, userId);
+    await replyMessages(env, replyToken, [dataDeletedMessage(baseUrl)]);
+    return;
+  }
+
+  await replyMessages(env, replyToken, [unknownMessage()]);
 }
 
 async function handleText(
   text: string,
   env: Env,
   userId: string,
-  replyToken: string
+  replyToken: string,
+  baseUrl: string
 ): Promise<void> {
   const normalized = text.trim();
   const birthDate = normalizeBirthDateText(normalized);
   if (birthDate) {
     if (!isAdultBirthDate(birthDate)) {
-      await replyMessages(env, replyToken, [simpleText("ヒキヨミは18歳以上向けです。生年月日を確認してください。")]);
+      await replyMessages(env, replyToken, [
+        simpleText(
+          "ヒキヨミは18歳以上向けです。生年月日を確認してください。"
+        )
+      ]);
       return;
     }
     await setBirthDate(env.DB, userId, birthDate);
-    await replyMessages(env, replyToken, [birthTimeMessage()]);
+    await replyMessages(env, replyToken, [birthTimeMessage(baseUrl)]);
     return;
   }
 
@@ -187,34 +280,101 @@ async function handleText(
   if (getRegistrationStep(user) === "birth-time") {
     if (isBirthTimeUnknownText(normalized)) {
       await setBirthTimeUnknown(env.DB, userId);
-      await replyMessages(env, replyToken, [registeredMessage()]);
+      await replyMessages(env, replyToken, [registeredMessage(baseUrl)]);
       return;
     }
 
     const birthTime = normalizeBirthTimeText(normalized);
     if (birthTime) {
       await setBirthTime(env.DB, userId, birthTime);
-      await replyMessages(env, replyToken, [registeredMessage()]);
+      await replyMessages(env, replyToken, [registeredMessage(baseUrl)]);
       return;
     }
   }
 
-  if (/^(今日の)?(スロ運|占い|運勢)|占って/.test(normalized)) {
-    await sendFortune(env, userId, replyToken);
+  if (/^(今日の)?(スロ運|占い|運勢)$|占って/.test(normalized)) {
+    await sendFortune(env, userId, replyToken, baseUrl);
     return;
   }
 
-  await replyMessages(env, replyToken, [registrationMessage(user)]);
+  if (/^(登録情報|設定|プロフィール)$/.test(normalized)) {
+    if (getRegistrationStep(user) !== "complete" || !user) {
+      await replyMessages(env, replyToken, [registrationMessage(user, baseUrl)]);
+    } else {
+      await replyMessages(env, replyToken, [settingsMessage(user, baseUrl)]);
+    }
+    return;
+  }
+
+  if (/^(使い方|ヘルプ|help)$/i.test(normalized)) {
+    await replyMessages(env, replyToken, [helpMessage(baseUrl)]);
+    return;
+  }
+
+  if (/^(根拠|理由|鑑定の根拠)$/.test(normalized)) {
+    await sendReason(env, userId, replyToken, baseUrl);
+    return;
+  }
+
+  if (/^(生年月日変更|生年月日を変更)$/.test(normalized)) {
+    await replyMessages(env, replyToken, [birthDateMessage(baseUrl, true)]);
+    return;
+  }
+
+  if (/^(出生時刻変更|出生時刻を変更)$/.test(normalized)) {
+    if (!user?.birth_date) {
+      await replyMessages(env, replyToken, [birthDateMessage(baseUrl)]);
+    } else {
+      await replyMessages(env, replyToken, [birthTimeMessage(baseUrl, true)]);
+    }
+    return;
+  }
+
+  if (getRegistrationStep(user) !== "complete") {
+    await replyMessages(env, replyToken, [registrationMessage(user, baseUrl)]);
+    return;
+  }
+
+  await replyMessages(env, replyToken, [unknownMessage()]);
 }
 
-async function sendFortune(env: Env, userId: string, replyToken: string): Promise<void> {
+async function sendFortune(
+  env: Env,
+  userId: string,
+  replyToken: string,
+  baseUrl: string
+): Promise<void> {
   const user = await getUser(env.DB, userId);
-  const step = getRegistrationStep(user);
-  if (step !== "complete" || !user?.birth_date) {
-    await replyMessages(env, replyToken, [registrationMessage(user)]);
+  if (getRegistrationStep(user) !== "complete" || !user?.birth_date) {
+    await replyMessages(env, replyToken, [registrationMessage(user, baseUrl)]);
     return;
   }
 
+  const fortune = await getOrCreateTodayFortune(env, userId, user);
+  await replyMessages(env, replyToken, [fortuneMessage(fortune, baseUrl)]);
+}
+
+async function sendReason(
+  env: Env,
+  userId: string,
+  replyToken: string,
+  baseUrl: string
+): Promise<void> {
+  const user = await getUser(env.DB, userId);
+  if (getRegistrationStep(user) !== "complete" || !user?.birth_date) {
+    await replyMessages(env, replyToken, [registrationMessage(user, baseUrl)]);
+    return;
+  }
+
+  const fortune = await getOrCreateTodayFortune(env, userId, user);
+  await replyMessages(env, replyToken, [reasonMessage(fortune, baseUrl)]);
+}
+
+async function getOrCreateTodayFortune(
+  env: Env,
+  userId: string,
+  user: UserRecord
+): Promise<FortuneResult> {
   const date = todayJst();
   let fortune = await getFortune(env.DB, userId, date);
 
@@ -238,12 +398,24 @@ async function sendFortune(env: Env, userId: string, replyToken: string): Promis
     fortune = (await getFortune(env.DB, userId, date)) ?? candidate;
   }
 
-  await replyMessages(env, replyToken, [fortuneMessage(fortune)]);
+  return fortune;
 }
 
-function registrationMessage(user: UserRecord | null): LineMessage {
+function registrationMessage(
+  user: UserRecord | null,
+  baseUrl: string
+): LineMessage {
   const step = getRegistrationStep(user);
-  if (step === "birth-date") return birthDateMessage();
-  if (step === "birth-time") return birthTimeMessage();
-  return registeredMessage();
+  if (step === "birth-date") return birthDateMessage(baseUrl);
+  if (step === "birth-time") return birthTimeMessage(baseUrl);
+  return registeredMessage(baseUrl);
+}
+
+function html(content: string): Response {
+  return new Response(content, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "public, max-age=300"
+    }
+  });
 }
