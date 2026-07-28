@@ -1,16 +1,23 @@
 import { verifyLineSignature } from "./crypto";
-import { isAdultBirthDate, normalizeBirthDateText, todayJst } from "./date";
+import {
+  isAdultBirthDate,
+  isValidTime,
+  normalizeBirthDateText,
+  normalizeBirthTimeText,
+  todayJst
+} from "./date";
 import { createFortune } from "./fortune";
 import { createNarrative } from "./gemini";
 import { privacyHtml, termsHtml } from "./legal";
 import { replyMessages } from "./line";
 import {
-  ageConfirmationMessage,
   birthDateMessage,
+  birthTimeMessage,
   fortuneMessage,
   registeredMessage,
   simpleText
 } from "./messages";
+import { getRegistrationStep, isBirthTimeUnknownText } from "./registration";
 import {
   claimWebhookEvent,
   ensureUser,
@@ -18,10 +25,13 @@ import {
   getUser,
   markUserInactive,
   saveFortune,
-  setAdultConfirmed,
-  setBirthDate
+  setBirthDate,
+  setBirthTime,
+  setBirthTimeUnknown
 } from "./storage";
-import type { Env, FortuneResult, LineWebhookBody, LineWebhookEvent } from "./types";
+import type { Env, FortuneResult, LineMessage, LineWebhookBody, LineWebhookEvent, UserRecord } from "./types";
+import { buildFoundationAssessment } from "./v2/rules";
+import { foundationInputFromUser } from "./v2/user-input";
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -75,7 +85,8 @@ async function handleEvent(event: LineWebhookEvent, env: Env): Promise<void> {
   await ensureUser(env.DB, userId);
 
   if (event.type === "follow") {
-    await replyMessages(env, replyToken, [ageConfirmationMessage()]);
+    const user = await getUser(env.DB, userId);
+    await replyMessages(env, replyToken, [registrationMessage(user)]);
     return;
   }
 
@@ -98,26 +109,40 @@ async function handlePostback(
   const params = new URLSearchParams(event.postback?.data ?? "");
   const action = params.get("action");
 
-  if (action === "adult_no") {
-    await replyMessages(env, replyToken, [
-      simpleText("ヒキヨミは18歳以上向けのため利用できません。18歳になってからご利用ください。")
-    ]);
-    return;
-  }
-
-  if (action === "adult_yes") {
-    await setAdultConfirmed(env.DB, userId);
-    await replyMessages(env, replyToken, [birthDateMessage()]);
-    return;
-  }
-
   if (action === "set_birthdate") {
     const birthDate = event.postback?.params?.date;
     if (!birthDate || !isAdultBirthDate(birthDate)) {
-      await replyMessages(env, replyToken, [simpleText("18歳以上であることを確認できる生年月日を選択してください。")]);
+      await replyMessages(env, replyToken, [simpleText("ヒキヨミは18歳以上向けです。生年月日を確認してください。")]);
       return;
     }
     await setBirthDate(env.DB, userId, birthDate);
+    await replyMessages(env, replyToken, [birthTimeMessage()]);
+    return;
+  }
+
+  if (action === "set_birthtime") {
+    const birthTime = event.postback?.params?.time;
+    const user = await getUser(env.DB, userId);
+    if (!user?.birth_date) {
+      await replyMessages(env, replyToken, [birthDateMessage()]);
+      return;
+    }
+    if (!birthTime || !isValidTime(birthTime)) {
+      await replyMessages(env, replyToken, [simpleText("出生時刻を確認できませんでした。時刻を選び直してください。")]);
+      return;
+    }
+    await setBirthTime(env.DB, userId, birthTime);
+    await replyMessages(env, replyToken, [registeredMessage()]);
+    return;
+  }
+
+  if (action === "birthtime_unknown") {
+    const user = await getUser(env.DB, userId);
+    if (!user?.birth_date) {
+      await replyMessages(env, replyToken, [birthDateMessage()]);
+      return;
+    }
+    await setBirthTimeUnknown(env.DB, userId);
     await replyMessages(env, replyToken, [registeredMessage()]);
     return;
   }
@@ -144,8 +169,24 @@ async function handleText(
       return;
     }
     await setBirthDate(env.DB, userId, birthDate);
-    await replyMessages(env, replyToken, [registeredMessage()]);
+    await replyMessages(env, replyToken, [birthTimeMessage()]);
     return;
+  }
+
+  const user = await getUser(env.DB, userId);
+  if (getRegistrationStep(user) === "birth-time") {
+    if (isBirthTimeUnknownText(normalized)) {
+      await setBirthTimeUnknown(env.DB, userId);
+      await replyMessages(env, replyToken, [registeredMessage()]);
+      return;
+    }
+
+    const birthTime = normalizeBirthTimeText(normalized);
+    if (birthTime) {
+      await setBirthTime(env.DB, userId, birthTime);
+      await replyMessages(env, replyToken, [registeredMessage()]);
+      return;
+    }
   }
 
   if (/^(今日の)?(スロ運|占い|運勢)|占って/.test(normalized)) {
@@ -153,30 +194,29 @@ async function handleText(
     return;
   }
 
-  const user = await getUser(env.DB, userId);
-  if (!user?.adult_confirmed) {
-    await replyMessages(env, replyToken, [ageConfirmationMessage()]);
-  } else if (!user.birth_date) {
-    await replyMessages(env, replyToken, [birthDateMessage()]);
-  } else {
-    await replyMessages(env, replyToken, [
-      simpleText("『今日のスロ運』と送ると、本日の占いを表示します。")
-    ]);
-  }
+  await replyMessages(env, replyToken, [registrationMessage(user)]);
 }
 
 async function sendFortune(env: Env, userId: string, replyToken: string): Promise<void> {
   const user = await getUser(env.DB, userId);
-  if (!user?.adult_confirmed) {
-    await replyMessages(env, replyToken, [ageConfirmationMessage()]);
-    return;
-  }
-  if (!user.birth_date) {
-    await replyMessages(env, replyToken, [birthDateMessage()]);
+  const step = getRegistrationStep(user);
+  if (step !== "complete" || !user) {
+    await replyMessages(env, replyToken, [registrationMessage(user)]);
     return;
   }
 
   const date = todayJst();
+
+  // V2の入力経路を常時検証する。表示結果の完全移行は第2工程Cで行う。
+  await buildFoundationAssessment(
+    foundationInputFromUser({
+      user,
+      userId,
+      targetDate: date,
+      salt: env.FORTUNE_SALT
+    })
+  );
+
   let fortune = await getFortune(env.DB, userId, date);
   if (!fortune) {
     const core = await createFortune({
@@ -192,4 +232,11 @@ async function sendFortune(env: Env, userId: string, replyToken: string): Promis
   }
 
   await replyMessages(env, replyToken, [fortuneMessage(fortune)]);
+}
+
+function registrationMessage(user: UserRecord | null): LineMessage {
+  const step = getRegistrationStep(user);
+  if (step === "birth-date") return birthDateMessage();
+  if (step === "birth-time") return birthTimeMessage();
+  return registeredMessage();
 }
