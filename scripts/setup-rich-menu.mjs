@@ -8,7 +8,11 @@ const NAME_PREFIX = "hikiyomi-main-";
 const OUTPUT = ".tmp/rich-menu.png";
 const dryRun = process.argv.includes("--dry-run");
 const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-const version = process.env.RICH_MENU_VERSION ?? new Date().toISOString().slice(0, 10).replaceAll("-", "");
+const defaultVersion = new Date()
+  .toISOString()
+  .slice(0, 10)
+  .replaceAll("-", "");
+const version = process.env.RICH_MENU_VERSION?.trim() || defaultVersion;
 
 const definition = {
   size: { width: WIDTH, height: HEIGHT },
@@ -56,7 +60,9 @@ if (image.byteLength > 1_000_000) {
 }
 
 await writeFile(OUTPUT, image);
-console.log(`Generated ${OUTPUT} (${image.byteLength} bytes, ${WIDTH}x${HEIGHT})`);
+console.log(
+  `Generated ${OUTPUT} (${image.byteLength} bytes, ${WIDTH}x${HEIGHT})`
+);
 
 if (dryRun) {
   console.log(JSON.stringify(definition, null, 2));
@@ -91,14 +97,22 @@ try {
     `https://api.line.me/v2/bot/user/all/richmenu/${encodeURIComponent(richMenuId)}`,
     { method: "POST" }
   );
-  console.log(`Default rich menu set: ${richMenuId}`);
-
-  if (previousId && previousId !== richMenuId) {
-    await deletePreviousIfOwned(previousId);
-  }
 } catch (error) {
   await safeDelete(richMenuId);
   throw error;
+}
+
+console.log(`Default rich menu set: ${richMenuId}`);
+
+if (previousId && previousId !== richMenuId) {
+  try {
+    await deletePreviousIfOwned(previousId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `New rich menu is active, but previous-menu cleanup failed: ${message}`
+    );
+  }
 }
 
 async function getDefaultRichMenuId() {
@@ -119,8 +133,13 @@ async function deletePreviousIfOwned(richMenuId) {
   if (response.status === 404) return;
   if (!response.ok) throw await lineError(response);
   const previous = await response.json();
-  if (typeof previous.name !== "string" || !previous.name.startsWith(NAME_PREFIX)) {
-    console.log(`Previous default menu was not created by this script; retained: ${richMenuId}`);
+  if (
+    typeof previous.name !== "string" ||
+    !previous.name.startsWith(NAME_PREFIX)
+  ) {
+    console.log(
+      `Previous default menu was not created by this script; retained: ${richMenuId}`
+    );
     return;
   }
   await safeDelete(richMenuId);
@@ -133,7 +152,9 @@ async function safeDelete(richMenuId) {
     { method: "DELETE", headers: authHeaders() }
   );
   if (!response.ok && response.status !== 404) {
-    console.warn(`Could not delete rich menu ${richMenuId}: ${response.status}`);
+    console.warn(
+      `Could not delete rich menu ${richMenuId}: ${response.status}`
+    );
   }
 }
 
@@ -173,7 +194,8 @@ async function lineError(response) {
 }
 
 function renderSvg() {
-  const font = "'Noto Sans CJK JP','Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif";
+  const font =
+    "'Noto Sans CJK JP','Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif";
   return `<?xml version="1.0" encoding="UTF-8"?>
   <svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
     <defs>
