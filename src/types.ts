@@ -25,7 +25,18 @@ export interface FortuneItem {
   meaning: string;
 }
 
+export interface FortuneAnalysis {
+  assessmentVersion: string;
+  confidence: "low" | "medium" | "high";
+  consensus: number;
+  mainFactors: string[];
+  conflicts: string[];
+  sourceRuleIds: string[];
+  sourceIds: string[];
+}
+
 export interface FortuneResult {
+  engineVersion?: string;
   date: string;
   overall: number;
   rank: string;
@@ -41,6 +52,7 @@ export interface FortuneResult {
   luckyTime: string;
   theme: string;
   narrative: string;
+  analysis?: FortuneAnalysis;
 }
 
 export interface LineWebhookBody {
