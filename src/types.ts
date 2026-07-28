@@ -11,6 +11,10 @@ export interface UserRecord {
   user_id: string;
   adult_confirmed: number;
   birth_date: string | null;
+  birth_time: string | null;
+  birth_time_known: number;
+  birth_timezone: string | null;
+  birth_location_json: string | null;
   status: string;
   created_at: string;
   updated_at: string;
