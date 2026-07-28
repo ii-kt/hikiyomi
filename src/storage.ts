@@ -99,9 +99,12 @@ export async function saveFortune(
 ): Promise<void> {
   await db
     .prepare(
-      `INSERT OR IGNORE INTO daily_fortunes
+      `INSERT INTO daily_fortunes
        (user_id, fortune_date, payload_json, created_at)
-       VALUES (?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(user_id, fortune_date) DO UPDATE SET
+         payload_json = excluded.payload_json,
+         created_at = excluded.created_at`
     )
     .bind(userId, fortune.date, JSON.stringify(fortune), nowIso())
     .run();
