@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "npm run db:migrate:remote && wrangler deploy",
@@ -14,10 +17,10 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250728.0",
-    "sharp": "^0.35.3",
-    "typescript": "^5.8.3",
-    "vitest": "^3.2.4",
-    "wrangler": "^4.26.0"
+    "@cloudflare/workers-types": "5.20260728.1",
+    "sharp": "0.35.3",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7",
+    "wrangler": "4.114.0"
   }
 }
