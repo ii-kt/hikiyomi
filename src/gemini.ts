@@ -1,9 +1,11 @@
-import { fallbackNarrative } from "./fortune";
-import type { Env, FortuneResult } from "./types";
+import type { Env } from "./types";
 import {
   fallbackV2Narrative,
   type V2FortuneDraft
 } from "./v2/fortune";
+
+const DEFAULT_MODEL = "gemini-3.5-flash-lite";
+const REQUEST_TIMEOUT_MS = 4_500;
 
 const FORBIDDEN = [
   /必ず勝/,
@@ -23,38 +25,15 @@ const FORBIDDEN = [
   /結果を保証(?:する|します|できる|される)/
 ];
 
-export async function createNarrative(
-  env: Env,
-  fortune: Omit<FortuneResult, "narrative">
-): Promise<string> {
-  const fallback = fallbackNarrative(fortune);
-  if (!env.GEMINI_API_KEY) return fallback;
-
-  const data = {
-    overall: fortune.overall,
-    rank: fortune.rank,
-    draw: fortune.draw,
-    selection: fortune.selection,
-    flow: fortune.flow,
-    calmness: fortune.calmness,
-    luckyDigit: fortune.luckyDigit,
-    luckyColor: fortune.luckyColor,
-    luckyItem: fortune.luckyItem,
-    machineStyle: fortune.machineStyle,
-    theme: fortune.theme
-  };
-
-  return requestNarrative(env, data, fallback);
-}
-
 export async function createV2Narrative(
   env: Env,
   fortune: V2FortuneDraft
 ): Promise<string> {
   const fallback = fallbackV2Narrative(fortune);
-  if (!env.GEMINI_API_KEY) return fallback;
+  const apiKey = env.GEMINI_API_KEY?.trim();
+  if (!apiKey) return fallback;
 
-  // 生年月日、出生時刻、LINEユーザーIDはこのオブジェクトへ含めない。
+  // 個人情報は含めず、コードで確定済みの結果だけを送る。
   const anonymousData = {
     engineVersion: fortune.engineVersion,
     overall: fortune.overall,
@@ -83,15 +62,16 @@ export async function createV2Narrative(
     }
   };
 
-  return requestNarrative(env, anonymousData, fallback);
+  return requestNarrative(env, apiKey, anonymousData, fallback);
 }
 
 async function requestNarrative(
   env: Env,
+  apiKey: string,
   data: Record<string, unknown>,
   fallback: string
 ): Promise<string> {
-  const model = env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+  const model = env.GEMINI_MODEL?.trim() || DEFAULT_MODEL;
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
   const prompt = [
     "以下の確定済み占いデータだけを材料に、日本語で110〜190文字の鑑定文を1段落で作成してください。",
@@ -104,14 +84,17 @@ async function requestNarrative(
     "- 占い・娯楽として、落ち着いたが少し期待感のある文体",
     `確定データ: ${JSON.stringify(data)}`
   ].join("\n");
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-goog-api-key": env.GEMINI_API_KEY ?? ""
+        "x-goog-api-key": apiKey
       },
+      signal: controller.signal,
       body: JSON.stringify({
         systemInstruction: {
           parts: [
@@ -129,7 +112,8 @@ async function requestNarrative(
             properties: {
               narrative: {
                 type: "string",
-                description: "110〜190文字の日本語1段落。確定データを変更せず、安全条件を守る。"
+                description:
+                  "110〜190文字の日本語1段落。確定データを変更せず、安全条件を守る。"
               }
             },
             required: ["narrative"],
@@ -139,7 +123,14 @@ async function requestNarrative(
       })
     });
 
-    if (!response.ok) return fallback;
+    if (!response.ok) {
+      console.warn("Gemini narrative request failed", {
+        model,
+        status: response.status
+      });
+      return fallback;
+    }
+
     const payload = (await response.json()) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
     };
@@ -154,8 +145,14 @@ async function requestNarrative(
       typeof parsed.narrative === "string" ? parsed.narrative.trim() : "";
     if (!isAcceptableNarrative(text)) return fallback;
     return text.replace(/^「|」$/g, "");
-  } catch {
+  } catch (error) {
+    console.warn("Gemini narrative fallback", {
+      model,
+      reason: error instanceof Error ? error.name : "unknown"
+    });
     return fallback;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

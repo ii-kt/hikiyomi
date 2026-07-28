@@ -14,7 +14,8 @@
     "richmenu:build": "node scripts/setup-rich-menu.mjs --dry-run",
     "richmenu:setup": "node scripts/setup-rich-menu.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check": "npm run typecheck && npm test && npm run richmenu:build"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260728.1",

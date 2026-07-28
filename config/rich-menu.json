@@ -1,0 +1,53 @@
+{
+  "size": {
+    "width": 2500,
+    "height": 843
+  },
+  "selected": true,
+  "namePrefix": "hikiyomi-main-",
+  "chatBarText": "ヒキヨミメニュー",
+  "areas": [
+    {
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 834,
+        "height": 843
+      },
+      "action": {
+        "type": "postback",
+        "label": "今日のスロ運",
+        "data": "action=fortune",
+        "displayText": "今日のスロ運"
+      }
+    },
+    {
+      "bounds": {
+        "x": 834,
+        "y": 0,
+        "width": 833,
+        "height": 843
+      },
+      "action": {
+        "type": "postback",
+        "label": "登録情報",
+        "data": "action=settings",
+        "displayText": "登録情報"
+      }
+    },
+    {
+      "bounds": {
+        "x": 1667,
+        "y": 0,
+        "width": 833,
+        "height": 843
+      },
+      "action": {
+        "type": "postback",
+        "label": "使い方",
+        "data": "action=help",
+        "displayText": "使い方"
+      }
+    }
+  ]
+}

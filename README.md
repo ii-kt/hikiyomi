@@ -17,7 +17,7 @@ LINE公式アカウント向けの、1日1回・ワンタップ完結型スロ�
 - ルール、増減理由、出典IDの追跡
 - 合議度、参考度、主要因、矛盾の保存
 - Geminiによる鑑定文整形
-- Gemini停止時・危険出力時の決定論的フォールバック
+- Gemini停止・タイムアウト・危険出力時の決定論的フォールバック
 - LINEユーザーID、生年月日、出生時刻をGeminiへ送らない匿名化
 
 ### LINE利用導線
@@ -45,14 +45,21 @@ LINE公式アカウント向けの、1日1回・ワンタップ完結型スロ�
 - Vitest
 - sharp（リッチメニュー画像生成時のみ）
 
+## 本番に含まれる範囲
+
+Cloudflare Workersへデプロイされるエントリーポイントは `src/index.ts` です。
+
+`test/`、`docs/`、`scripts/`、`.github/`、`config/` は、品質確認・説明・リッチメニュー設定に使用する開発資産であり、Workerの実行コードにはバンドルされません。
+
 ## 開発
 
 ```bash
 npm install
-npm run typecheck
-npm test
+npm run check
 npm run dev
 ```
+
+`npm run check` は、型検査・全テスト・リッチメニュー画像の生成検証をまとめて実行します。
 
 D1マイグレーション：
 
@@ -62,6 +69,8 @@ npm run db:migrate:remote
 ```
 
 ## リッチメニュー
+
+定義の正本は `config/rich-menu.json` です。
 
 画像とLINE APIリクエストをローカル生成するだけの場合：
 

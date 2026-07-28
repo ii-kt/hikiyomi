@@ -1,52 +1,35 @@
 import { describe, expect, it } from "vitest";
-import {
-  createRichMenuDefinition,
-  RICH_MENU_HEIGHT,
-  RICH_MENU_WIDTH
-} from "../src/rich-menu";
+import menu from "../config/rich-menu.json";
 
-describe("LINE rich menu", () => {
-  it("uses an uploadable LINE rich menu canvas", () => {
-    const menu = createRichMenuDefinition("test");
-    expect(menu.size).toEqual({
-      width: RICH_MENU_WIDTH,
-      height: RICH_MENU_HEIGHT
-    });
-    expect(menu.size.width).toBeGreaterThanOrEqual(800);
-    expect(menu.size.width).toBeLessThanOrEqual(2500);
-    expect(menu.size.height).toBeGreaterThanOrEqual(250);
-    expect(menu.size.width / menu.size.height).toBeGreaterThanOrEqual(1.45);
+describe("LINE rich menu configuration", () => {
+  it("uses the supported large rich menu canvas", () => {
+    expect(menu.size).toEqual({ width: 2500, height: 843 });
+    expect(menu.chatBarText.length).toBeGreaterThan(0);
     expect(menu.chatBarText.length).toBeLessThanOrEqual(14);
+    expect(menu.namePrefix).toMatch(/^hikiyomi-/);
   });
 
-  it("covers the entire canvas once with three adjacent actions", () => {
-    const menu = createRichMenuDefinition("test");
+  it("covers the canvas exactly once with three adjacent areas", () => {
     const sorted = [...menu.areas].sort((a, b) => a.bounds.x - b.bounds.x);
 
     expect(sorted).toHaveLength(3);
-    expect(sorted[0]?.bounds.x).toBe(0);
-    for (let index = 0; index < sorted.length - 1; index += 1) {
-      const current = sorted[index];
-      const next = sorted[index + 1];
-      expect(current).toBeDefined();
-      expect(next).toBeDefined();
-      expect((current?.bounds.x ?? 0) + (current?.bounds.width ?? 0)).toBe(
-        next?.bounds.x
-      );
+    let cursor = 0;
+    for (const area of sorted) {
+      expect(area.bounds.x).toBe(cursor);
+      expect(area.bounds.y).toBe(0);
+      expect(area.bounds.height).toBe(menu.size.height);
+      expect(area.bounds.width).toBeGreaterThan(0);
+      cursor += area.bounds.width;
     }
-    const last = sorted.at(-1);
-    expect((last?.bounds.x ?? 0) + (last?.bounds.width ?? 0)).toBe(
-      RICH_MENU_WIDTH
-    );
-    expect(sorted.every((area) => area.bounds.height === RICH_MENU_HEIGHT)).toBe(
-      true
-    );
+    expect(cursor).toBe(menu.size.width);
   });
 
   it("exposes the three primary one-tap operations", () => {
-    const serialized = JSON.stringify(createRichMenuDefinition("test"));
-    expect(serialized).toContain("action=fortune");
-    expect(serialized).toContain("action=settings");
-    expect(serialized).toContain("action=help");
+    const data = menu.areas.map((area) => area.action.data);
+    expect(data).toEqual([
+      "action=fortune",
+      "action=settings",
+      "action=help"
+    ]);
   });
 });
