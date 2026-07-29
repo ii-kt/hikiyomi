@@ -17,27 +17,29 @@ describe("public pages", () => {
     expect(html).toContain("勝敗、収支を予測または保証するものではありません");
   });
 
-  it("documents the complete LINE flow and practical result fields", () => {
+  it("documents birth-date-only onboarding and practical result fields", () => {
     const html = helpHtml(baseUrl);
     expect(html).toContain("生年月日を登録");
-    expect(html).toContain("出生時刻を登録");
-    expect(html).toContain("今日のスロ運");
-    expect(html).toContain("相性のよい機種タイプとメーカー");
-    expect(html).toContain("立ち回りテーマ、注意ポイント");
+    expect(html).toContain("出生時刻は不要");
+    expect(html).toContain("おすすめスロットタイプ");
+    expect(html).toContain("相性メーカー");
+    expect(html).toContain("ラッキー末尾");
     expect(html).toContain("登録情報の変更・削除");
+    expect(html).not.toContain("必要なら根拠を確認");
   });
 
-  it("states exactly what Gemini receives and excludes private inputs", () => {
+  it("states that no result data is sent to an external generative AI", () => {
     const html = privacyHtml();
-    expect(html).toContain("Gemini API");
-    expect(html).toContain("LINEユーザー識別子、生年月日、出生時刻、サービス秘密値");
-    expect(html).toContain("非表示の内部指標は送信しません");
+    expect(html).toContain("外部の生成AIへ送信しません");
+    expect(html).not.toContain("Gemini APIへ送信する場合があります");
     expect(html).toContain("保存済み占い結果を削除");
   });
 
-  it("does not present internal indicators or manufacturer labels as predictions", () => {
+  it("separates cultural divination from scientific win prediction", () => {
     const html = termsHtml();
-    expect(html).toContain("勝率や的中確率ではありません");
+    expect(html).toContain("占いは、未知の事柄について");
+    expect(html).toContain("ヒキヨミ独自の象徴変換");
+    expect(html).toContain("点数は勝率や的中確率ではありません");
     expect(html).toContain("提携、協賛、推奨、公式認定を示すものではありません");
     expect(html).toContain("追加投資、損失回収の根拠にしないでください");
   });
