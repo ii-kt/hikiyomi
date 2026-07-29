@@ -57,13 +57,6 @@ export const SOURCE_REGISTRY = [
   },
   {
     id: "HIKIYOMI-METHOD-001",
-    title: "ヒキヨミ方式 v3（旧方式）",
-    url: "docs/methodology-v3.md",
-    tier: "P",
-    role: "V3以前の結果に保存された旧方式ID"
-  },
-  {
-    id: "HIKIYOMI-METHOD-002",
     title: "ヒキヨミ方式 v4",
     url: "docs/methodology.md",
     tier: "P",
