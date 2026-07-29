@@ -39,14 +39,28 @@ export const SOURCE_REGISTRY = [
     title: "WHO Gambling fact sheet",
     url: "https://www.who.int/news-room/fact-sheets/detail/gambling",
     tier: "A",
-    role: "鑑定文と行動提案の安全制約"
+    role: "時間・金額の事前制限、休憩等の安全な行動指針"
+  },
+  {
+    id: "CAMBRIDGE-DIVINATION-001",
+    title: "Divination: A Cognitive Perspective",
+    url: "https://doi.org/10.1017/9781009541961",
+    tier: "B",
+    role: "占いを未知について知識を求める文化的実践として整理"
+  },
+  {
+    id: "NATURE-ASTROLOGY-TEST-001",
+    title: "A double-blind test of astrology",
+    url: "https://doi.org/10.1038/318419a0",
+    tier: "B",
+    role: "出生図の主張に対する二重盲検検証。科学的非保証の境界"
   },
   {
     id: "HIKIYOMI-METHOD-001",
-    title: "ヒキヨミ独自合議方式",
+    title: "ヒキヨミ方式 v3",
     url: "docs/methodology.md",
     tier: "P",
-    role: "暦の事実をスロ運の中間指標へ変換する独自ルール。伝統占術の事実とは区別"
+    role: "暦・数をスロット向け表示へ変換する独自規則。伝統的事実とは区別"
   }
 ] as const;
 
