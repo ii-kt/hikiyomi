@@ -1,6 +1,7 @@
 import type { UserRecord } from "./types";
 
-export type RegistrationStep = "birth-date" | "complete";
+/** "birth-time" is retained for call-site compatibility but is no longer returned. */
+export type RegistrationStep = "birth-date" | "birth-time" | "complete";
 
 export function getRegistrationStep(user: UserRecord | null): RegistrationStep {
   return user?.birth_date ? "complete" : "birth-date";
