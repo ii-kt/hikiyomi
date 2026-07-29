@@ -10,9 +10,9 @@ import type {
   RuleContribution
 } from "./types";
 
-export const V2_ENGINE_VERSION = "v2-fortune-1";
+export const V2_ENGINE_VERSION = "v2-fortune-2";
 
-type DisplayScoreKey = "draw" | "selection" | "flow" | "calmness";
+type GuidanceKey = "draw" | "selection" | "flow" | "calmness";
 type WeightedMetric = readonly [MetricKey, number];
 
 export type V2FortuneDraft = Omit<FortuneResult, "narrative"> & {
@@ -20,7 +20,7 @@ export type V2FortuneDraft = Omit<FortuneResult, "narrative"> & {
   analysis: FortuneAnalysis;
 };
 
-const SCORE_INPUTS: Record<DisplayScoreKey, readonly WeightedMetric[]> = {
+const SCORE_INPUTS: Record<GuidanceKey, readonly WeightedMetric[]> = {
   draw: [
     ["activity", 0.35],
     ["adaptability", 0.3],
@@ -47,22 +47,22 @@ const SCORE_INPUTS: Record<DisplayScoreKey, readonly WeightedMetric[]> = {
   ]
 };
 
-const SCORE_LABELS: Record<DisplayScoreKey, string> = {
+const GUIDANCE_LABELS: Record<GuidanceKey, string> = {
   draw: "引き運",
-  selection: "台選び運",
-  flow: "流れ運",
-  calmness: "冷静さ運"
+  selection: "選び方の傾向",
+  flow: "展開との付き合い方",
+  calmness: "注意の置き方"
 };
 
 const METRIC_LABELS: Record<MetricKey, string> = {
   activity: "活動性",
-  judgment: "判断力",
-  continuity: "継続力",
-  adaptability: "変化対応力",
-  caution: "慎重性",
-  impulseControl: "衝動抑制",
-  concentration: "集中力",
-  switching: "切替力"
+  judgment: "判断軸",
+  continuity: "継続性",
+  adaptability: "変化対応",
+  caution: "確認傾向",
+  impulseControl: "区切り意識",
+  concentration: "集中傾向",
+  switching: "切替傾向"
 };
 
 const ELEMENT_COLORS: Record<FiveElement, FortuneItem> = {
@@ -70,22 +70,35 @@ const ELEMENT_COLORS: Record<FiveElement, FortuneItem> = {
   fire: { name: "朱色", meaning: "動き出す勢いを、短い区切りへ変える色" },
   earth: { name: "琥珀色", meaning: "足元の条件と予定を確認する色" },
   metal: { name: "シルバー", meaning: "余計な候補を削り、判断を明確にする色" },
-  water: { name: "ネイビー", meaning: "流れを観察し、焦りを落ち着かせる色" }
+  water: { name: "ネイビー", meaning: "展開を観察し、焦りを落ち着かせる色" }
 };
 
-const LOW_SCORE_ITEMS: Record<DisplayScoreKey, FortuneItem> = {
-  draw: { name: "無糖の飲み物", meaning: "一口飲んでから動くことで、勢い任せを避ける合図" },
+const LOW_SCORE_ITEMS: Record<GuidanceKey, FortuneItem> = {
+  draw: { name: "無糖の飲み物", meaning: "一口飲んでから動き、勢い任せを避ける合図" },
   selection: { name: "小さなメモ", meaning: "最初に決めた条件を残し、候補を増やしすぎないための道具" },
   flow: { name: "イヤホンケース", meaning: "移動や休憩の区切りを意識する目印" },
   calmness: { name: "腕時計", meaning: "経過時間を確認し、予定どおり区切るための道具" }
 };
 
-const HIGH_SCORE_STYLES: Record<DisplayScoreKey, FortuneItem> = {
+const HIGH_SCORE_STYLES: Record<GuidanceKey, FortuneItem> = {
   draw: { name: "演出を楽しめる機種", meaning: "結果だけに寄せず、今日の勢いを娯楽として扱いやすいタイプ" },
-  selection: { name: "打ち慣れた機種", meaning: "既知の挙動を基準にして判断力を使いやすいタイプ" },
-  flow: { name: "短時間で区切れる機種", meaning: "流れの変化を確認しながら予定を守りやすいタイプ" },
-  calmness: { name: "手順を追いやすい機種", meaning: "落ち着いて確認する今日の強みを使いやすいタイプ" }
+  selection: { name: "打ち慣れた機種", meaning: "既知の挙動を基準にして候補を絞りやすいタイプ" },
+  flow: { name: "短時間で区切れる機種", meaning: "展開の変化を確認しながら予定を守りやすいタイプ" },
+  calmness: { name: "手順を追いやすい機種", meaning: "確認する箇所を決めて遊びやすいタイプ" }
 };
+
+const MANUFACTURERS = [
+  "サミー",
+  "大都技研",
+  "SANKYO",
+  "山佐ネクスト",
+  "北電子",
+  "ユニバーサルエンターテインメント",
+  "平和",
+  "藤商事",
+  "ニューギン",
+  "コナミアミューズメント"
+] as const;
 
 export function createV2Fortune(
   assessment: FoundationAssessment
@@ -132,7 +145,7 @@ export function createV2Fortune(
       birthTimePolarityAdjustment(assessment)
   );
 
-  const displayScores: Record<DisplayScoreKey, number> = {
+  const guidanceScores: Record<GuidanceKey, number> = {
     draw,
     selection,
     flow,
@@ -143,8 +156,8 @@ export function createV2Fortune(
     20,
     95
   );
-  const strongest = scoreExtreme(displayScores, "highest");
-  const weakest = scoreExtreme(displayScores, "lowest");
+  const strongest = scoreExtreme(guidanceScores, "highest");
+  const weakest = scoreExtreme(guidanceScores, "lowest");
 
   const luckyDigit = positiveModulo(
     facts.birthNumerology +
@@ -173,10 +186,10 @@ export function createV2Fortune(
         (facts.birthHourBranch?.index ?? facts.birthNumerology),
       12
     );
+  const compatibleManufacturers = manufacturerPair(assessment, overall);
 
   const analysis = createAnalysis(
     assessment,
-    displayScores,
     cycleDistance,
     numerologyDistance
   );
@@ -195,30 +208,22 @@ export function createV2Fortune(
     luckyColor: ELEMENT_COLORS[facts.targetDay.stem.element],
     luckyItem: LOW_SCORE_ITEMS[weakest],
     machineStyle: HIGH_SCORE_STYLES[strongest],
+    compatibleManufacturers,
     luckyTime: `${String(startHour).padStart(2, "0")}:00〜${String(startHour + 1).padStart(2, "0")}:00`,
-    theme: themeFor(strongest, weakest),
+    theme: themeFor(strongest),
+    caution: cautionFor(weakest),
     analysis
   };
 }
 
 export function fallbackV2Narrative(fortune: V2FortuneDraft): string {
-  const scores: Record<DisplayScoreKey, number> = {
-    draw: fortune.draw,
-    selection: fortune.selection,
-    flow: fortune.flow,
-    calmness: fortune.calmness
-  };
-  const strongest = scoreExtreme(scores, "highest");
-  const weakest = scoreExtreme(scores, "lowest");
   const factor = fortune.analysis.mainFactors[0] ?? "複数の暦要素";
-  const conflict = fortune.analysis.conflicts[0];
-
-  return `${factor}が今日の中心です。${SCORE_LABELS[strongest]}は使いやすい一方、${SCORE_LABELS[weakest]}は意識して補う余地があります。${fortune.theme}ことを基準にし、末尾${fortune.luckyDigit}は同条件で迷ったときの娯楽上の目印として扱ってください。${conflict ? `なお、${conflict}ため、一つの勢いだけで決めない日です。` : ""}`;
+  return `${factor}が今日の中心です。引き運は${fortune.draw}点。相性傾向は「${fortune.machineStyle.name}」、相性メーカーは${fortune.compatibleManufacturers.join("・")}です。${fortune.theme}ことを基準にし、${fortune.caution}。末尾${fortune.luckyDigit}は同条件で迷ったときの娯楽上の目印として扱ってください。`;
 }
 
 function finalScore(
   assessment: FoundationAssessment,
-  key: DisplayScoreKey,
+  key: GuidanceKey,
   calendarAdjustment: number
 ): number {
   const blended = SCORE_INPUTS[key].reduce((sum, [metric, weight]) => {
@@ -249,14 +254,43 @@ function birthTimePolarityAdjustment(
   return birthHour.polarity === assessment.facts.targetDay.branch.polarity ? 2 : -1;
 }
 
+function manufacturerPair(
+  assessment: FoundationAssessment,
+  overall: number
+): [string, string] {
+  const facts = assessment.facts;
+  const firstIndex = positiveModulo(
+    facts.birthDay.index +
+      facts.targetDay.index +
+      facts.birthNumerology +
+      Math.round(overall / 10),
+    MANUFACTURERS.length
+  );
+  let secondIndex = positiveModulo(
+    firstIndex +
+      facts.targetDay.branch.index +
+      facts.targetNumerology +
+      1,
+    MANUFACTURERS.length
+  );
+  if (secondIndex === firstIndex) {
+    secondIndex = (secondIndex + 1) % MANUFACTURERS.length;
+  }
+  return [manufacturerAt(firstIndex), manufacturerAt(secondIndex)];
+}
+
+function manufacturerAt(index: number): string {
+  const manufacturer = MANUFACTURERS[index];
+  if (!manufacturer) throw new Error("Manufacturer table is empty");
+  return manufacturer;
+}
+
 function createAnalysis(
   assessment: FoundationAssessment,
-  displayScores: Record<DisplayScoreKey, number>,
   cycleDistance: number,
   numerologyDistance: number
 ): FortuneAnalysis {
-  void displayScores;
-  const consensusValues = (Object.keys(SCORE_INPUTS) as DisplayScoreKey[]).map(
+  const consensusValues = (Object.keys(SCORE_INPUTS) as GuidanceKey[]).map(
     (key) => scoreConsensus(assessment, key)
   );
   const consensus = round2(
@@ -281,7 +315,7 @@ function createAnalysis(
     ...contributionFactors
   ].slice(0, 3);
 
-  const conflicts = (Object.keys(SCORE_INPUTS) as DisplayScoreKey[])
+  const conflicts = (Object.keys(SCORE_INPUTS) as GuidanceKey[])
     .map((key) => scoreConflict(assessment, key))
     .filter((value): value is string => Boolean(value));
 
@@ -295,7 +329,8 @@ function createAnalysis(
       ...new Set([
         ...assessment.contributions.map((item) => item.ruleId),
         "FINAL-SCORE-MAP-001",
-        "LUCKY-DERIVATION-001"
+        "LUCKY-DERIVATION-001",
+        "MANUFACTURER-DERIVATION-001"
       ])
     ],
     sourceIds: [...new Set([...assessment.sourceIds, "HIKIYOMI-METHOD-001"])]
@@ -329,7 +364,7 @@ function topContributionFactors(
 
 function scoreConsensus(
   assessment: FoundationAssessment,
-  key: DisplayScoreKey
+  key: GuidanceKey
 ): number {
   const values = SCORE_INPUTS[key].map(([metric]) =>
     amplifyMetric(assessment.metrics[metric].score)
@@ -340,7 +375,7 @@ function scoreConsensus(
 
 function scoreConflict(
   assessment: FoundationAssessment,
-  key: DisplayScoreKey
+  key: GuidanceKey
 ): string | null {
   const values = SCORE_INPUTS[key].map(([metric]) => ({
     metric,
@@ -349,37 +384,38 @@ function scoreConflict(
   const high = [...values].sort((a, b) => b.score - a.score)[0];
   const low = [...values].sort((a, b) => a.score - b.score)[0];
   if (!high || !low || high.score - low.score < 15) return null;
-  return `${SCORE_LABELS[key]}では${METRIC_LABELS[high.metric]}と${METRIC_LABELS[low.metric]}の判定が分かれている`;
+  return `${GUIDANCE_LABELS[key]}では${METRIC_LABELS[high.metric]}と${METRIC_LABELS[low.metric]}の判定が分かれている`;
 }
 
 function scoreExtreme(
-  scores: Record<DisplayScoreKey, number>,
+  scores: Record<GuidanceKey, number>,
   direction: "highest" | "lowest"
-): DisplayScoreKey {
-  const entries = Object.entries(scores) as Array<[DisplayScoreKey, number]>;
+): GuidanceKey {
+  const entries = Object.entries(scores) as Array<[GuidanceKey, number]>;
   entries.sort((a, b) =>
     direction === "highest" ? b[1] - a[1] : a[1] - b[1]
   );
   return entries[0]?.[0] ?? "calmness";
 }
 
-function themeFor(
-  strongest: DisplayScoreKey,
-  weakest: DisplayScoreKey
-): string {
-  const strongText: Record<DisplayScoreKey, string> = {
-    draw: "動き出す勢いを短い判断に使う",
-    selection: "最初に決めた条件を判断軸にする",
-    flow: "変化を見たら早めに区切り直す",
-    calmness: "時間と予算の基準を崩さない"
+function themeFor(strongest: GuidanceKey): string {
+  const themes: Record<GuidanceKey, string> = {
+    draw: "動き出す勢いを、短い判断に使う",
+    selection: "打ち慣れた基準を優先し、候補を絞る",
+    flow: "変化を見たら、早めに区切り直す",
+    calmness: "時間と予算の基準を崩さず進める"
   };
-  const weakText: Record<DisplayScoreKey, string> = {
-    draw: "反応の弱さを追いかけず様子を見る",
-    selection: "候補を増やす前に条件を確認する",
-    flow: "一つの展開を次の予兆と決めつけない",
-    calmness: "勢いが出た後ほど時計を見る"
+  return themes[strongest];
+}
+
+function cautionFor(weakest: GuidanceKey): string {
+  const cautions: Record<GuidanceKey, string> = {
+    draw: "反応の弱さを追いかけず、様子を見る時間を作る",
+    selection: "候補を増やす前に、最初の条件をもう一度確認する",
+    flow: "一つの展開を次の予兆と決めつけず、区切って見る",
+    calmness: "勢いが出た後ほど、時計と予算を確認する"
   };
-  return `${strongText[strongest]}。同時に、${weakText[weakest]}`;
+  return cautions[weakest];
 }
 
 function rankFor(score: number): string {

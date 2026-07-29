@@ -6,6 +6,7 @@ import {
   normalizeBirthTimeText,
   todayJst
 } from "./date";
+import { fortuneMessage, reasonMessage } from "./fortune-messages";
 import { createV2Narrative } from "./gemini";
 import { helpHtml, homeHtml, privacyHtml, termsHtml } from "./legal";
 import { replyMessages } from "./line";
@@ -14,9 +15,7 @@ import {
   birthTimeMessage,
   dataDeletedMessage,
   deleteConfirmationMessage,
-  fortuneMessage,
   helpMessage,
-  reasonMessage,
   registeredMessage,
   settingsMessage,
   simpleText,

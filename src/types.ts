@@ -41,6 +41,7 @@ export interface FortuneResult {
   overall: number;
   rank: string;
   draw: number;
+  /** Internal guidance scores kept for deterministic derivation and cache compatibility. */
   selection: number;
   flow: number;
   calmness: number;
@@ -49,8 +50,10 @@ export interface FortuneResult {
   luckyColor: FortuneItem;
   luckyItem: FortuneItem;
   machineStyle: FortuneItem;
+  compatibleManufacturers: [string, string];
   luckyTime: string;
   theme: string;
+  caution: string;
   narrative: string;
   analysis?: FortuneAnalysis;
 }
