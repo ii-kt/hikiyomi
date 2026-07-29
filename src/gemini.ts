@@ -7,11 +7,25 @@ import {
 const DEFAULT_MODEL = "gemini-3.5-flash-lite";
 const REQUEST_TIMEOUT_MS = 4_500;
 
+const KNOWN_MANUFACTURERS = [
+  "サミー",
+  "大都技研",
+  "SANKYO",
+  "山佐ネクスト",
+  "北電子",
+  "ユニバーサルエンターテインメント",
+  "平和",
+  "藤商事",
+  "ニューギン",
+  "コナミアミューズメント"
+] as const;
+
 const FORBIDDEN = [
   /必ず勝/,
   /勝てる/,
   /高設定/,
   /設定[1-6]/,
+  /設定状況/,
   /当たりやす/,
   /勝率/,
   /期待値が高/,
@@ -22,7 +36,8 @@ const FORBIDDEN = [
   /借金/,
   /確実/,
   /勝利.{0,8}保証/,
-  /結果を保証(?:する|します|できる|される)/
+  /結果を保証(?:する|します|できる|される)/,
+  /(?:推奨|おすすめ|オススメ|提携|協賛|公認|公式認定|パートナー|スポンサー)/
 ];
 
 export async function createV2Narrative(
@@ -63,13 +78,20 @@ export async function createV2Narrative(
     }
   };
 
-  return requestNarrative(env, apiKey, anonymousData, fallback);
+  return requestNarrative(
+    env,
+    apiKey,
+    anonymousData,
+    fortune.compatibleManufacturers,
+    fallback
+  );
 }
 
 async function requestNarrative(
   env: Env,
   apiKey: string,
   data: Record<string, unknown>,
+  allowedManufacturers: readonly string[],
   fallback: string
 ): Promise<string> {
   const model = env.GEMINI_MODEL?.trim() || DEFAULT_MODEL;
@@ -146,7 +168,7 @@ async function requestNarrative(
     const parsed = JSON.parse(raw) as { narrative?: unknown };
     const text =
       typeof parsed.narrative === "string" ? parsed.narrative.trim() : "";
-    if (!isAcceptableNarrative(text)) return fallback;
+    if (!isAcceptableNarrative(text, allowedManufacturers)) return fallback;
     return text.replace(/^「|」$/g, "");
   } catch (error) {
     console.warn("Gemini narrative fallback", {
@@ -159,7 +181,17 @@ async function requestNarrative(
   }
 }
 
-function isAcceptableNarrative(text: string): boolean {
+function isAcceptableNarrative(
+  text: string,
+  allowedManufacturers: readonly string[]
+): boolean {
   if (text.length < 80 || text.length > 260) return false;
-  return !FORBIDDEN.some((pattern) => pattern.test(text));
+  if (FORBIDDEN.some((pattern) => pattern.test(text))) return false;
+
+  const mentionedManufacturers = KNOWN_MANUFACTURERS.filter((name) =>
+    text.includes(name)
+  );
+  return mentionedManufacturers.every((name) =>
+    allowedManufacturers.includes(name)
+  );
 }
