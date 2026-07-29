@@ -33,26 +33,27 @@ export async function createV2Narrative(
   const apiKey = env.GEMINI_API_KEY?.trim();
   if (!apiKey) return fallback;
 
-  // 個人情報は含めず、コードで確定済みの結果だけを送る。
+  // 個人情報と非表示の内部指標は含めず、利用者へ表示する確定結果だけを送る。
   const anonymousData = {
     engineVersion: fortune.engineVersion,
     overall: fortune.overall,
     rank: fortune.rank,
-    scores: {
-      draw: fortune.draw,
-      selection: fortune.selection,
-      flow: fortune.flow,
-      calmness: fortune.calmness
+    draw: fortune.draw,
+    compatibility: {
+      machineStyle: fortune.machineStyle,
+      manufacturers: fortune.compatibleManufacturers
     },
     lucky: {
       digit: fortune.luckyDigit,
       numbers: fortune.luckyNumbers,
       color: fortune.luckyColor,
       item: fortune.luckyItem,
-      machineStyle: fortune.machineStyle,
       time: fortune.luckyTime
     },
-    theme: fortune.theme,
+    guidance: {
+      theme: fortune.theme,
+      caution: fortune.caution
+    },
     reasoning: {
       confidence: fortune.analysis.confidence,
       consensus: fortune.analysis.consensus,
@@ -76,9 +77,11 @@ async function requestNarrative(
   const prompt = [
     "以下の確定済み占いデータだけを材料に、日本語で110〜190文字の鑑定文を1段落で作成してください。",
     "条件:",
-    "- 点数、数字、色、アイテム、時刻を変更しない",
-    "- mainFactorsとconflictsを要約し、結果の使い方まで説明する",
+    "- 総合点、引き運、数字、色、アイテム、時刻、機種タイプ、メーカー名を変更しない",
+    "- 立ち回りテーマと注意ポイントを、実際に使い方が分かるように自然に含める",
+    "- 非表示の能力や状態を推測しない。冷静さ、判断力、技量を測定した表現をしない",
     "- データにない占術、天体、出来事、店舗、機種名を追加しない",
+    "- メーカー名を設定状況、勝率、推奨、提携の意味で扱わない",
     "- 勝利、高設定、出玉、回収、追加投資を断定または推奨しない",
     "- 不安、損失、焦りを煽らない",
     "- 占い・娯楽として、落ち着いたが少し期待感のある文体",
@@ -99,7 +102,7 @@ async function requestNarrative(
         systemInstruction: {
           parts: [
             {
-              text: "あなたはスロットを題材にした娯楽占いサービス『ヒキヨミ』の文章編集者です。計算や予測はせず、渡された確定データを読みやすい鑑定文へ整形します。"
+              text: "あなたはスロットを題材にした娯楽占いサービス『ヒキヨミ』の文章編集者です。計算、能力評価、実機予測はせず、渡された確定データを読みやすい鑑定文へ整形します。"
             }
           ]
         },
