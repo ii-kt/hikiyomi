@@ -9,7 +9,6 @@ export function foundationInputFromUser(input: {
 }): FoundationInput {
   const { user } = input;
   if (!user.birth_date) throw new Error("birth date is not registered");
-  if (user.birth_time_known < 0) throw new Error("birth time registration is incomplete");
 
   const birthTimeKnown = user.birth_time_known === 1;
   if (birthTimeKnown && !user.birth_time) {
