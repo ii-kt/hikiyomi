@@ -27,49 +27,35 @@ function user(overrides: Partial<UserRecord> = {}): UserRecord {
 }
 
 describe("registration flow", () => {
-  it("starts with birth date instead of a separate age confirmation", () => {
+  it("requires only a birth date for initial registration", () => {
     expect(getRegistrationStep(null)).toBe("birth-date");
-    expect(JSON.stringify(birthDateMessage(baseUrl))).not.toContain("adult_yes");
-    expect(JSON.stringify(birthDateMessage(baseUrl))).not.toContain(
-      "18歳以上です"
-    );
-  });
-
-  it("moves to birth time after an adult birth date is stored", () => {
-    const pending = user({
-      adult_confirmed: 1,
-      birth_date: "1996-04-18",
-      birth_time_known: -1
-    });
-
-    expect(getRegistrationStep(pending)).toBe("birth-time");
-    const message = JSON.stringify(birthTimeMessage(baseUrl));
-    expect(message).toContain("set_birthtime");
-    expect(message).toContain("birthtime_unknown");
-  });
-
-  it("accepts known or unknown birth time as registration complete", () => {
     expect(
       getRegistrationStep(
         user({
+          adult_confirmed: 1,
           birth_date: "1996-04-18",
-          birth_time: "14:20",
-          birth_time_known: 1
+          birth_time_known: -1
         })
       )
     ).toBe("complete");
-    expect(
-      getRegistrationStep(
-        user({
-          birth_date: "1996-04-18",
-          birth_time: null,
-          birth_time_known: 0
-        })
-      )
-    ).toBe("complete");
+
+    const serialized = JSON.stringify(birthDateMessage(baseUrl));
+    expect(serialized).toContain("action=set_birthdate");
+    expect(serialized).toContain("出生時刻は不要");
   });
 
-  it("normalizes text time input and recognizes unknown replies", () => {
+  it("does not ask for birth time after initial birth-date registration", () => {
+    const completed = JSON.stringify(birthTimeMessage(baseUrl));
+    expect(completed).toContain("準備ができました");
+    expect(completed).not.toContain("action=set_birthtime");
+
+    const optionalEdit = JSON.stringify(birthTimeMessage(baseUrl, true));
+    expect(optionalEdit).toContain("action=set_birthtime");
+    expect(optionalEdit).toContain("action=birthtime_unknown");
+    expect(optionalEdit).toContain("覚えていない場合は調べる必要はありません");
+  });
+
+  it("normalizes optional time input and recognizes unknown replies", () => {
     expect(normalizeBirthTimeText("9時05分")).toBe("09:05");
     expect(normalizeBirthTimeText("24:00")).toBeNull();
     expect(isBirthTimeUnknownText("分からない")).toBe(true);
@@ -77,7 +63,7 @@ describe("registration flow", () => {
 });
 
 describe("V2 user input bridge", () => {
-  it("passes a known birth time to the V2 foundation", () => {
+  it("passes a known optional birth time to the foundation", () => {
     const input = foundationInputFromUser({
       user: user({
         birth_date: "1996-04-18",
@@ -93,30 +79,21 @@ describe("V2 user input bridge", () => {
     expect(input.birthTime).toBe("14:20");
   });
 
-  it("passes unknown birth time without fabricating a time", () => {
-    const input = foundationInputFromUser({
-      user: user({
-        birth_date: "1996-04-18",
-        birth_time: null,
-        birth_time_known: 0
-      }),
-      userId: "U_TEST",
-      targetDate: "2026-07-28",
-      salt: "test-salt"
-    });
-
-    expect(input.birthTimeKnown).toBe(false);
-    expect(input.birthTime).toBeNull();
-  });
-
-  it("rejects an incomplete birth-time registration", () => {
-    expect(() =>
-      foundationInputFromUser({
-        user: user({ birth_date: "1996-04-18", birth_time_known: -1 }),
+  it("treats unselected or unknown birth time as optional", () => {
+    for (const birthTimeKnown of [-1, 0]) {
+      const input = foundationInputFromUser({
+        user: user({
+          birth_date: "1996-04-18",
+          birth_time: null,
+          birth_time_known: birthTimeKnown
+        }),
         userId: "U_TEST",
         targetDate: "2026-07-28",
         salt: "test-salt"
-      })
-    ).toThrow("incomplete");
+      });
+
+      expect(input.birthTimeKnown).toBe(false);
+      expect(input.birthTime).toBeNull();
+    }
   });
 });
