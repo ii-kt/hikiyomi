@@ -9,7 +9,7 @@ const BORDER = "#E5E7EB";
 
 export function fortuneMessage(
   result: FortuneResult,
-  baseUrl: string
+  _baseUrl: string
 ): LineMessage {
   return withNavigation({
     type: "flex",
@@ -81,12 +81,11 @@ export function fortuneMessage(
           infoRow(
             "今日のおすすめスロットタイプ",
             result.machineStyle.name,
-            `${result.machineStyle.meaning}。実際の設定・勝率を示すものではありません。`
+            result.machineStyle.meaning
           ),
           infoRow(
             "相性メーカー",
-            result.compatibleManufacturers.join("／"),
-            "占い上の候補です。メーカー各社との提携・推奨関係はありません。"
+            result.compatibleManufacturers.join("／")
           ),
           infoRow(
             "ラッキーカラー",
@@ -98,11 +97,7 @@ export function fortuneMessage(
             result.luckyItem.name,
             result.luckyItem.meaning
           ),
-          infoRow(
-            "ラッキータイム",
-            result.luckyTime,
-            "占い上の区切り時刻です。遊技継続の根拠にはしないでください。"
-          ),
+          infoRow("ラッキータイム", result.luckyTime),
           guidanceBox(
             "今日の立ち回りテーマ",
             result.theme,
@@ -114,20 +109,12 @@ export function fortuneMessage(
             result.caution,
             "#F7F8FC",
             BRAND
-          ),
-          {
-            type: "text",
-            text: "暦・数の規則を使った娯楽占いです。設定、出玉、勝敗、収支を予測しません。時間と予算を事前に決めてください。",
-            wrap: true,
-            size: "xxs",
-            color: MUTED
-          }
+          )
         ]
       },
       footer: {
         type: "box",
         layout: "vertical",
-        spacing: "sm",
         contents: [
           {
             type: "button",
@@ -138,8 +125,7 @@ export function fortuneMessage(
               label: "登録情報",
               data: "action=settings"
             }
-          },
-          legalLinks(baseUrl)
+          }
         ]
       }
     }
@@ -152,7 +138,7 @@ export function reasonMessage(
 ): LineMessage {
   return withNavigation({
     type: "text",
-    text: "鑑定の根拠は利用者向け画面から外しました。暦上の干支・五行・陰陽と数の規則を計算し、スロット向けの表示はヒキヨミ独自の象徴変換で作っています。勝率や設定を予測する根拠ではありません。"
+    text: "鑑定方法の説明は使い方ページにまとめています。"
   });
 }
 
@@ -250,7 +236,7 @@ function luckyDigitCard(value: number): Record<string, unknown> {
       },
       {
         type: "text",
-        text: "同条件で迷ったときの娯楽上の目印",
+        text: "同条件で迷ったときの目印",
         color: MUTED,
         size: "xs",
         margin: "xs"
@@ -262,7 +248,7 @@ function luckyDigitCard(value: number): Record<string, unknown> {
 function infoRow(
   label: string,
   value: string,
-  detail: string
+  detail?: string
 ): Record<string, unknown> {
   return {
     type: "box",
@@ -271,7 +257,9 @@ function infoRow(
     contents: [
       { type: "text", text: label, color: MUTED, size: "xs" },
       { type: "text", text: value, weight: "bold", size: "md", wrap: true },
-      { type: "text", text: detail, color: MUTED, size: "xs", wrap: true }
+      ...(detail
+        ? [{ type: "text", text: detail, color: MUTED, size: "xs", wrap: true }]
+        : [])
     ]
   };
 }
@@ -302,36 +290,6 @@ function guidanceBox(
         wrap: true,
         weight: "bold",
         margin: "sm"
-      }
-    ]
-  };
-}
-
-function legalLinks(baseUrl: string): Record<string, unknown> {
-  return {
-    type: "box",
-    layout: "horizontal",
-    spacing: "sm",
-    contents: [
-      {
-        type: "button",
-        style: "link",
-        height: "sm",
-        action: {
-          type: "uri",
-          label: "利用規約",
-          uri: `${baseUrl}/terms`
-        }
-      },
-      {
-        type: "button",
-        style: "link",
-        height: "sm",
-        action: {
-          type: "uri",
-          label: "プライバシー",
-          uri: `${baseUrl}/privacy`
-        }
       }
     ]
   };
