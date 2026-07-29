@@ -93,7 +93,7 @@ describe("LINE UI messages", () => {
     expect(serialized).toContain("action=settings");
   });
 
-  it("shows only useful result fields and removes confusing details", () => {
+  it("shows only useful result fields and removes defensive clutter", () => {
     const serialized = json(fortuneMessage(fortune, baseUrl));
     expect(serialized).toContain("引き運");
     expect(serialized).toContain("今日のおすすめスロットタイプ");
@@ -106,12 +106,18 @@ describe("LINE UI messages", () => {
     expect(serialized).not.toContain("今日の主な根拠");
     expect(serialized).not.toContain("action=reason");
     expect(serialized).toContain("action=settings");
+    expect(serialized).not.toContain("実際の設定・勝率を示すものではありません");
+    expect(serialized).not.toContain("メーカー各社との提携・推奨関係はありません");
+    expect(serialized).not.toContain("遊技継続の根拠にはしないでください");
+    expect(serialized).not.toContain("暦・数の規則を使った娯楽占いです");
+    expect(serialized).not.toContain("利用規約");
+    expect(serialized).not.toContain("プライバシー");
   });
 
-  it("explains the hidden methodology without technical score details", () => {
+  it("keeps methodology outside the main result card", () => {
     const serialized = json(reasonMessage(fortune, baseUrl));
-    expect(serialized).toContain("ヒキヨミ独自の象徴変換");
-    expect(serialized).toContain("勝率や設定を予測する根拠ではありません");
+    expect(serialized).toContain("使い方ページにまとめています");
+    expect(serialized).not.toContain("勝率や設定を予測する根拠ではありません");
     expect(serialized).not.toContain("74%");
   });
 
