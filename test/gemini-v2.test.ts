@@ -41,10 +41,10 @@ describe("V2 Gemini narrative", () => {
     expect(result).toBe(fallbackV2Narrative(fortune));
   });
 
-  it("sends only anonymized confirmed result data with a JSON schema", async () => {
+  it("sends only anonymized public result data with a JSON schema", async () => {
     const fortune = await draft();
     const generated =
-      "暦の周期と判断力の指標が今日の軸です。台選び運を活かすには、最初に決めた条件を増やさず、冷静さ運の弱い部分は時計で区切って補うのが適切です。ラッキー要素は結果の保証ではなく、迷った場面で気持ちを整える目印として扱ってください。";
+      "今日は打ち慣れた機種を軸に候補を絞る日です。相性メーカーは占い上の目印として扱い、実際の設定状況とは切り分けてください。立ち回りテーマを守り、注意ポイントでは時計と予算を確認しながら、ラッキー要素を娯楽として楽しみましょう。";
     const fetchMock = vi.fn(
       async (_input: RequestInfo | URL, _init?: RequestInit) =>
         new Response(
@@ -86,6 +86,11 @@ describe("V2 Gemini narrative", () => {
     expect(serialized).not.toContain(privateInput.birthDate);
     expect(serialized).not.toContain(privateInput.birthTime);
     expect(serialized).not.toContain(privateInput.salt);
+    expect(serialized).not.toContain('"selection":');
+    expect(serialized).not.toContain('"flow":');
+    expect(serialized).not.toContain('"calmness":');
+    expect(serialized).toContain("manufacturers");
+    expect(serialized).toContain("caution");
   });
 
   it("rejects unsafe model output and returns the fallback", async () => {
