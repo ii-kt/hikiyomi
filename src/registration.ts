@@ -1,11 +1,9 @@
 import type { UserRecord } from "./types";
 
-export type RegistrationStep = "birth-date" | "birth-time" | "complete";
+export type RegistrationStep = "birth-date" | "complete";
 
 export function getRegistrationStep(user: UserRecord | null): RegistrationStep {
-  if (!user?.birth_date) return "birth-date";
-  if (user.birth_time_known < 0) return "birth-time";
-  return "complete";
+  return user?.birth_date ? "complete" : "birth-date";
 }
 
 export function isBirthTimeUnknownText(text: string): boolean {
