@@ -1,1 +1,1 @@
-export * from "./fortune-v3";
+export * from "./fortune-v4";

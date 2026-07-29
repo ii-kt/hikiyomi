@@ -6,8 +6,8 @@ import {
 
 /**
  * Kept under the existing function name for call-site compatibility.
- * V3 deliberately does not call a generative model: the displayed summary is
- * assembled only from deterministic, already-calculated result fields.
+ * V4 does not call a generative model. The displayed summary is assembled
+ * only from deterministic fortune fields calculated by the engine.
  */
 export async function createV2Narrative(
   _env: Env,

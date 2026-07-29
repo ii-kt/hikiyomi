@@ -1,1 +1,1 @@
-export * from "./fortune-messages-v3";
+export * from "./fortune-messages-v4";

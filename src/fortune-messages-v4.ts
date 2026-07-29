@@ -3,7 +3,6 @@ import type { FortuneResult, LineMessage } from "./types";
 const BRAND = "#11153D";
 const BRAND_SOFT = "#20275A";
 const GOLD = "#D6A92F";
-const GOLD_SOFT = "#F4F1E8";
 const MUTED = "#6B7280";
 const BORDER = "#E5E7EB";
 
@@ -92,24 +91,7 @@ export function fortuneMessage(
             result.luckyColor.name,
             result.luckyColor.meaning
           ),
-          infoRow(
-            "ラッキーアイテム",
-            result.luckyItem.name,
-            result.luckyItem.meaning
-          ),
-          infoRow("ラッキータイム", result.luckyTime),
-          guidanceBox(
-            "今日の立ち回りテーマ",
-            result.theme,
-            GOLD_SOFT,
-            "#7C5E10"
-          ),
-          guidanceBox(
-            "今日の注意ポイント",
-            result.caution,
-            "#F7F8FC",
-            BRAND
-          )
+          infoRow("ラッキータイム", result.luckyTime)
         ]
       },
       footer: {
@@ -260,37 +242,6 @@ function infoRow(
       ...(detail
         ? [{ type: "text", text: detail, color: MUTED, size: "xs", wrap: true }]
         : [])
-    ]
-  };
-}
-
-function guidanceBox(
-  label: string,
-  value: string,
-  backgroundColor: string,
-  labelColor: string
-): Record<string, unknown> {
-  return {
-    type: "box",
-    layout: "vertical",
-    backgroundColor,
-    cornerRadius: "md",
-    paddingAll: "14px",
-    contents: [
-      {
-        type: "text",
-        text: label,
-        color: labelColor,
-        size: "xs",
-        weight: "bold"
-      },
-      {
-        type: "text",
-        text: value,
-        wrap: true,
-        weight: "bold",
-        margin: "sm"
-      }
     ]
   };
 }

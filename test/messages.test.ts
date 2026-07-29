@@ -27,7 +27,7 @@ const user: UserRecord = {
   updated_at: "2026-07-29T00:00:00.000Z"
 };
 const fortune: FortuneResult = {
-  engineVersion: "v2-fortune-3",
+  engineVersion: "v2-fortune-4",
   date: "2026-07-29",
   overall: 72,
   rank: "好調",
@@ -37,25 +37,22 @@ const fortune: FortuneResult = {
   calmness: 70,
   luckyDigit: 7,
   luckyNumbers: [18, 42],
-  luckyColor: { name: "ネイビー", meaning: "水の象徴を意識する色" },
-  luckyItem: { name: "腕時計", meaning: "終了時刻を確認する道具" },
+  luckyColor: { name: "ネイビー", meaning: "水の象徴である流動と洞察を表す色" },
   machineStyle: {
     name: "スマスロAT機",
-    meaning: "五行と陰陽を現代の遊技分類へ置き換えた占い上の候補"
+    meaning: "水の陽が示す大きな流動を、展開変化の大きいタイプへ対応させた候補"
   },
   compatibleManufacturers: ["サミー", "大都技研"],
   luckyTime: "14:00〜15:00",
-  theme: "始める前に終了時刻を決める",
-  caution: "予定時刻を過ぎたら、結果に関係なく一度席を離れる",
-  narrative: "今日は「スマスロAT機」が占い上の相性候補です。相性メーカーはサミー／大都技研、ラッキー末尾は7。始める前に終了時刻を決める。予定時刻を過ぎたら、結果に関係なく一度席を離れる。",
+  narrative: "今日は「スマスロAT機」と相性が出ています。相性メーカーはサミー／大都技研。ラッキー末尾は7、ラッキーカラーはネイビーです。",
   analysis: {
     assessmentVersion: "v2-foundation-1",
     confidence: "medium",
     consensus: 0.74,
     mainFactors: ["対象日の干支", "六十干支距離"],
     conflicts: [],
-    sourceRuleIds: ["FINAL-SCORE-MAP-002", "SAFE-GUIDANCE-001"],
-    sourceIds: ["NAOJ-KANSHI-001", "WHO-GAMBLING-001"]
+    sourceRuleIds: ["FINAL-SCORE-MAP-002"],
+    sourceIds: ["NAOJ-KANSHI-001", "HIKIYOMI-METHOD-001"]
   }
 };
 
@@ -93,23 +90,22 @@ describe("LINE UI messages", () => {
     expect(serialized).toContain("action=settings");
   });
 
-  it("shows only useful result fields and removes defensive clutter", () => {
+  it("shows only fortune-focused result fields", () => {
     const serialized = json(fortuneMessage(fortune, baseUrl));
     expect(serialized).toContain("引き運");
     expect(serialized).toContain("今日のおすすめスロットタイプ");
     expect(serialized).toContain("スマスロAT機");
     expect(serialized).toContain("相性メーカー");
     expect(serialized).toContain("ラッキー末尾");
+    expect(serialized).toContain("ラッキーカラー");
+    expect(serialized).toContain("ラッキータイム");
+    expect(serialized).not.toContain("ラッキーアイテム");
+    expect(serialized).not.toContain("今日の立ち回りテーマ");
+    expect(serialized).not.toContain("今日の注意ポイント");
+    expect(serialized).not.toMatch(/上限|取り返|休憩|終了時刻|小さなメモ|腕時計|無糖の飲み物|イヤホンケース/);
     expect(serialized).not.toContain("意識する数字");
-    expect(serialized).not.toContain("鑑定内の参考度");
-    expect(serialized).not.toContain("鑑定内の一致度");
-    expect(serialized).not.toContain("今日の主な根拠");
     expect(serialized).not.toContain("action=reason");
     expect(serialized).toContain("action=settings");
-    expect(serialized).not.toContain("実際の設定・勝率を示すものではありません");
-    expect(serialized).not.toContain("メーカー各社との提携・推奨関係はありません");
-    expect(serialized).not.toContain("遊技継続の根拠にはしないでください");
-    expect(serialized).not.toContain("暦・数の規則を使った娯楽占いです");
     expect(serialized).not.toContain("利用規約");
     expect(serialized).not.toContain("プライバシー");
   });
@@ -117,7 +113,6 @@ describe("LINE UI messages", () => {
   it("keeps methodology outside the main result card", () => {
     const serialized = json(reasonMessage(fortune, baseUrl));
     expect(serialized).toContain("使い方ページにまとめています");
-    expect(serialized).not.toContain("勝率や設定を予測する根拠ではありません");
     expect(serialized).not.toContain("74%");
   });
 

@@ -10,7 +10,7 @@ import type {
   Polarity
 } from "./types";
 
-export const V2_ENGINE_VERSION = "v2-fortune-3";
+export const V2_ENGINE_VERSION = "v2-fortune-4";
 
 type GuidanceKey = "draw" | "selection" | "flow" | "calmness";
 type WeightedMetric = readonly [MetricKey, number];
@@ -48,69 +48,62 @@ const SCORE_INPUTS: Record<GuidanceKey, readonly WeightedMetric[]> = {
 };
 
 const ELEMENT_COLORS: Record<FiveElement, FortuneItem> = {
-  wood: { name: "エメラルド", meaning: "木の象徴である成長と整理を意識する色" },
-  fire: { name: "朱色", meaning: "火の象徴である勢いを短い区切りへ変える色" },
-  earth: { name: "琥珀色", meaning: "土の象徴である安定と足元の確認を意識する色" },
-  metal: { name: "シルバー", meaning: "金の象徴である選別と明確さを意識する色" },
-  water: { name: "ネイビー", meaning: "水の象徴である観察と柔軟さを意識する色" }
-};
-
-const LOW_SCORE_ITEMS: Record<GuidanceKey, FortuneItem> = {
-  draw: { name: "無糖の飲み物", meaning: "一口飲んでから動き、勢いだけで決めないための合図" },
-  selection: { name: "小さなメモ", meaning: "開始前に決めた条件を残しておくための道具" },
-  flow: { name: "イヤホンケース", meaning: "移動や休憩の区切りを意識する目印" },
-  calmness: { name: "腕時計", meaning: "終了時刻と休憩時刻を確認するための道具" }
+  wood: { name: "エメラルド", meaning: "木の象徴である成長と広がりを表す色" },
+  fire: { name: "朱色", meaning: "火の象徴である情熱と勢いを表す色" },
+  earth: { name: "琥珀色", meaning: "土の象徴である安定と蓄積を表す色" },
+  metal: { name: "シルバー", meaning: "金の象徴である明晰さと決断を表す色" },
+  water: { name: "ネイビー", meaning: "水の象徴である流動と洞察を表す色" }
 };
 
 const SLOT_TYPES: Record<FiveElement, Record<Polarity, FortuneItem>> = {
   wood: {
     yang: {
       name: "スマスロAT機",
-      meaning: "木の陽の『伸びる動き』を、展開変化の大きいタイプへ置き換えた占い上の候補"
+      meaning: "木の陽が示す伸長と展開力を、変化の大きいタイプへ対応させた候補"
     },
     yin: {
       name: "Aタイプ",
-      meaning: "木の陰の『整えて育てる』象徴を、区切りを見やすいタイプへ置き換えた占い上の候補"
+      meaning: "木の陰が示す育成と積み重ねを、刻みの見えやすいタイプへ対応させた候補"
     }
   },
   fire: {
     yang: {
       name: "スマスロAT機",
-      meaning: "火の陽の『強い動き』を、展開変化の大きいタイプへ置き換えた占い上の候補"
+      meaning: "火の陽が示す強い上昇力を、展開の大きいタイプへ対応させた候補"
     },
     yin: {
       name: "AT機",
-      meaning: "火の陰の『集中した熱』を、展開を追うタイプへ置き換えた占い上の候補"
+      meaning: "火の陰が示す内側の熱量を、展開を追うタイプへ対応させた候補"
     }
   },
   earth: {
     yang: {
       name: "メダルAT機",
-      meaning: "土の陽の『安定した進行』を、手順を追いやすいタイプへ置き換えた占い上の候補"
+      meaning: "土の陽が示す持続と安定を、進行を追いやすいタイプへ対応させた候補"
     },
     yin: {
       name: "Aタイプ",
-      meaning: "土の陰の『落ち着き』を、区切りを見やすいタイプへ置き換えた占い上の候補"
+      meaning: "土の陰が示す静かな蓄積を、刻みの見えやすいタイプへ対応させた候補"
     }
   },
   metal: {
     yang: {
       name: "AT機",
-      meaning: "金の陽の『選別と決断』を、展開を見て区切るタイプへ置き換えた占い上の候補"
+      meaning: "金の陽が示す決断と切れ味を、展開を見極めるタイプへ対応させた候補"
     },
     yin: {
       name: "Aタイプ",
-      meaning: "金の陰の『精密さ』を、判断材料を確認しやすいタイプへ置き換えた占い上の候補"
+      meaning: "金の陰が示す精密さを、細かな変化を捉えやすいタイプへ対応させた候補"
     }
   },
   water: {
     yang: {
       name: "スマスロAT機",
-      meaning: "水の陽の『大きな流動』を、展開変化の大きいタイプへ置き換えた占い上の候補"
+      meaning: "水の陽が示す大きな流動を、展開変化の大きいタイプへ対応させた候補"
     },
     yin: {
       name: "メダルAT機",
-      meaning: "水の陰の『観察と適応』を、変化を追いやすいタイプへ置き換えた占い上の候補"
+      meaning: "水の陰が示す観察と適応を、変化を追いやすいタイプへ対応させた候補"
     }
   }
 };
@@ -126,25 +119,6 @@ const MANUFACTURERS = [
   "藤商事",
   "ニューギン",
   "コナミアミューズメント"
-] as const;
-
-const SAFE_GUIDANCE = [
-  {
-    theme: "始める前に終了時刻を決める",
-    caution: "予定時刻を過ぎたら、結果に関係なく一度席を離れる"
-  },
-  {
-    theme: "使う上限を先に決める",
-    caution: "取り返す目的で、決めた上限を増やさない"
-  },
-  {
-    theme: "一定時間ごとに休憩を入れる",
-    caution: "展開が続いていても、時計を確認して区切る"
-  },
-  {
-    theme: "候補を絞ってから座る",
-    caution: "迷ったときは候補を増やさず、見送る選択も残す"
-  }
 ] as const;
 
 export function createV2Fortune(
@@ -202,7 +176,6 @@ export function createV2Fortune(
     20,
     95
   );
-  const weakest = scoreExtreme(guidanceScores, "lowest");
 
   const luckyDigit = positiveModulo(
     facts.birthNumerology +
@@ -230,7 +203,6 @@ export function createV2Fortune(
       facts.targetDay.branch.index + facts.birthNumerology,
       12
     );
-  const guidance = guidanceFor(assessment);
 
   return {
     engineVersion: V2_ENGINE_VERSION,
@@ -244,13 +216,10 @@ export function createV2Fortune(
     luckyDigit,
     luckyNumbers: [firstNumber, secondNumber],
     luckyColor: ELEMENT_COLORS[facts.targetDay.stem.element],
-    luckyItem: LOW_SCORE_ITEMS[weakest],
     machineStyle:
       SLOT_TYPES[facts.targetDay.stem.element][facts.targetDay.stem.polarity],
     compatibleManufacturers: manufacturerPair(assessment, overall),
     luckyTime: `${String(startHour).padStart(2, "0")}:00〜${String(startHour + 1).padStart(2, "0")}:00`,
-    theme: guidance.theme,
-    caution: guidance.caution,
     analysis: createAnalysis(
       assessment,
       guidanceScores,
@@ -261,7 +230,7 @@ export function createV2Fortune(
 }
 
 export function fallbackV2Narrative(fortune: V2FortuneDraft): string {
-  return `今日は「${fortune.machineStyle.name}」が占い上の相性候補です。相性メーカーは${fortune.compatibleManufacturers.join("／")}、ラッキー末尾は${fortune.luckyDigit}。${fortune.theme}。${fortune.caution}。`;
+  return `今日は「${fortune.machineStyle.name}」と相性が出ています。相性メーカーは${fortune.compatibleManufacturers.join("／")}。ラッキー末尾は${fortune.luckyDigit}、ラッキーカラーは${fortune.luckyColor.name}です。`;
 }
 
 function finalScore(
@@ -308,17 +277,6 @@ function birthTimePolarityAdjustment(
   const birthHour = assessment.facts.birthHourBranch;
   if (!birthHour) return 0;
   return birthHour.polarity === assessment.facts.targetDay.branch.polarity ? 1 : -1;
-}
-
-function guidanceFor(
-  assessment: FoundationAssessment
-): (typeof SAFE_GUIDANCE)[number] {
-  const index = positiveModulo(
-    assessment.facts.targetDay.branch.index +
-      assessment.facts.targetNumerology,
-    SAFE_GUIDANCE.length
-  );
-  return SAFE_GUIDANCE[index] ?? SAFE_GUIDANCE[0];
 }
 
 function manufacturerPair(
@@ -387,29 +345,16 @@ function createAnalysis(
         "FINAL-SCORE-MAP-002",
         "SLOT-TYPE-SYMBOLIC-001",
         "LUCKY-DERIVATION-001",
-        "MANUFACTURER-DERIVATION-001",
-        "SAFE-GUIDANCE-001"
+        "MANUFACTURER-DERIVATION-001"
       ])
     ],
     sourceIds: [
       ...new Set([
         ...assessment.sourceIds,
-        "WHO-GAMBLING-001",
         "HIKIYOMI-METHOD-001"
       ])
     ]
   };
-}
-
-function scoreExtreme(
-  scores: Record<GuidanceKey, number>,
-  direction: "highest" | "lowest"
-): GuidanceKey {
-  const entries = Object.entries(scores) as Array<[GuidanceKey, number]>;
-  entries.sort((a, b) =>
-    direction === "highest" ? b[1] - a[1] : a[1] - b[1]
-  );
-  return entries[0]?.[0] ?? "calmness";
 }
 
 function rankFor(score: number): string {
@@ -418,7 +363,7 @@ function rankFor(score: number): string {
   if (score >= 56) return "好調";
   if (score >= 44) return "平常";
   if (score >= 34) return "慎重";
-  return "休養推奨";
+  return "低調";
 }
 
 function circularDistance(a: number, b: number, size: number): number {

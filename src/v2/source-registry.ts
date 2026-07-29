@@ -39,7 +39,7 @@ export const SOURCE_REGISTRY = [
     title: "WHO Gambling fact sheet",
     url: "https://www.who.int/news-room/fact-sheets/detail/gambling",
     tier: "A",
-    role: "時間・金額の事前制限、休憩等の安全な行動指針"
+    role: "利用規約等の一般的な安全情報。V4占い結果の生成には不使用"
   },
   {
     id: "CAMBRIDGE-DIVINATION-001",
@@ -57,10 +57,10 @@ export const SOURCE_REGISTRY = [
   },
   {
     id: "HIKIYOMI-METHOD-001",
-    title: "ヒキヨミ方式 v3",
+    title: "ヒキヨミ方式 v4",
     url: "docs/methodology.md",
     tier: "P",
-    role: "暦・数をスロット向け表示へ変換する独自規則。伝統的事実とは区別"
+    role: "暦・数をV4のスロット向け表示へ変換する独自規則"
   }
 ] as const;
 
