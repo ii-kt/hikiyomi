@@ -41,20 +41,21 @@ export interface FortuneResult {
   overall: number;
   rank: string;
   draw: number;
-  /** Internal guidance scores kept for deterministic derivation and cache compatibility. */
+  /** Internal scores retained for deterministic calculation and cache compatibility. */
   selection: number;
   flow: number;
   calmness: number;
   luckyDigit: number;
   luckyNumbers: [number, number];
   luckyColor: FortuneItem;
-  luckyItem: FortuneItem;
   machineStyle: FortuneItem;
   compatibleManufacturers: [string, string];
   luckyTime: string;
-  theme: string;
-  caution: string;
   narrative: string;
+  /** Legacy V3 fields. New results do not generate or display these. */
+  luckyItem?: FortuneItem;
+  theme?: string;
+  caution?: string;
   analysis?: FortuneAnalysis;
 }
 
