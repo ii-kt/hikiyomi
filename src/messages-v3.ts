@@ -120,7 +120,7 @@ export function birthTimeMessage(
           },
           {
             type: "text",
-            text: "14:20 のようにメッセージで送ることもできます。変更後は保存済みの占い結果を再計算します。",
+            text: "変更後は保存済みの占い結果を再計算します。",
             wrap: true,
             size: "xs",
             color: MUTED
