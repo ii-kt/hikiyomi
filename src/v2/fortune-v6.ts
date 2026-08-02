@@ -5,17 +5,16 @@ import {
 } from "./fortune-v5";
 import type { FoundationAssessment } from "./types";
 
-export const V2_ENGINE_VERSION = "v2-fortune-6";
+export const V2_ENGINE_VERSION = "v2-fortune-7";
 
 export type V2FortuneDraft = Omit<V5FortuneDraft, "engineVersion"> & {
   engineVersion: typeof V2_ENGINE_VERSION;
 };
 
 /**
- * V6 keeps the V5 calendar calculations and annual rank, but the displayed
- * 0-100 score is now the actual weighted total of the visible components.
- * Annual percentile remains contextual information only and no longer
- * replaces the calculated score.
+ * V7 keeps the V6 weighted score calculation. The user-facing summary is
+ * rewritten as a short confidence cue for slot players instead of repeating
+ * the scoring formula or giving abstract selection instructions.
  */
 export function createV2Fortune(
   assessment: FoundationAssessment
@@ -34,11 +33,7 @@ export function createV2Fortune(
       ),
       "FINAL-SCORE-MAP-004"
     ],
-    slotSummary: scoreSummary(
-      overall,
-      base.analysis.scoreScale?.rankFromTop,
-      base.analysis.scoreScale?.totalDays
-    )
+    slotSummary: confidenceSummary(overall, draw)
   };
 
   return {
@@ -117,32 +112,29 @@ function scoreOf(
   return systems.find((system) => system.id === id)?.score ?? fallback;
 }
 
-function scoreSummary(
-  score: number,
-  rankFromTop: number | undefined,
-  totalDays: number | undefined
-): string {
-  const rankText =
-    rankFromTop && totalDays
-      ? `年間順位は${totalDays}日中、上位${rankFromTop}位です。`
-      : "";
-
+function confidenceSummary(score: number, draw: number): string {
   if (score >= 90) {
-    return `${rankText}各要素の加重合計が非常に高い日です。要するにスロットでいうと、相性が出たタイプ・メーカー・末尾を普段より素直に優先しやすい日です。`;
+    return "今日はかなり強い追い風が出ています。自分のヒキを信じて、迷わず楽しんでいい日です。";
   }
   if (score >= 75) {
-    return `${rankText}各要素の加重合計が高い日です。要するにスロットでいうと、候補を絞った後はおすすめタイプとラッキー末尾を決め手にしやすい日です。`;
+    return "今日は運気がしっかり味方しています。座った台では、自分なら引けるという感覚を持って打てる日です。";
   }
   if (score >= 60) {
-    return `${rankText}各要素の加重合計は平均より高めです。要するにスロットでいうと、相性が出た条件へ寄せると選びやすい日です。`;
+    return draw >= 70
+      ? "今日は総合運以上にヒキが強く出ています。勝負どころでは、自分のアームを信じていい日です。"
+      : "今日は流れをつかみやすい日です。決めた台では、余計に疑わず自信を持って楽しんでください。";
   }
   if (score >= 40) {
-    return `${rankText}各要素の加重合計は中間帯です。要するにスロットでいうと、おすすめタイプ・末尾・時間帯のうち重なる条件を使う日です。`;
+    return draw >= 60
+      ? "今日は総合点は平常ですが、ヒキは悪くありません。勝負どころでは、自分のアームを信じていい日です。"
+      : "今日は強い追い風こそありませんが、必要以上に弱気になる日でもありません。座った台では、自分のヒキを信じて楽しむ日です。";
   }
   if (score >= 20) {
-    return `${rankText}各要素の加重合計は低めです。要するにスロットでいうと、候補を広げず、相性が出た要素だけに絞って見る日です。`;
+    return draw >= 50
+      ? "今日は慎重寄りですが、ヒキまで弱いわけではありません。ここぞという場面では、自分なら引けると信じてください。"
+      : "今日は運気が控えめです。無理に強がるより、ラッキーカラーや末尾を味方につけて自信を整える日です。";
   }
-  return `${rankText}各要素の加重合計がかなり低い日です。要するにスロットでいうと、ラッキータイムや末尾など限定された条件だけを拾う日です。`;
+  return "今日は運気がかなり控えめです。それでも、ラッキーカラーや末尾をお守り代わりにして、自分のペースを崩さず楽しんでください。";
 }
 
 function rankFor(score: number): string {
