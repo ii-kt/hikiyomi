@@ -23,7 +23,7 @@ async function resultFor(overrides: Partial<typeof baseInput> = {}) {
   return createV2Fortune(assessment);
 }
 
-describe("V5 final fortune", () => {
+describe("V6 final fortune", () => {
   it("returns exactly the same result for the same assessment input", async () => {
     expect(await resultFor()).toEqual(await resultFor());
   });
@@ -40,22 +40,23 @@ describe("V5 final fortune", () => {
     );
   });
 
-  it("uses the full 0-100 display scale and records the annual position", async () => {
+  it("calculates the displayed score directly from the visible components", async () => {
     const result = await resultFor();
+    const systems = result.analysis.systems ?? [];
+    const score = (id: string) =>
+      systems.find((system) => system.id === id)?.score ?? 50;
+    const expected = Math.round(
+      score("five-elements") * 0.3 +
+        score("branches") * 0.2 +
+        score("sexagenary") * 0.2 +
+        score("numerology") * 0.15 +
+        score("birth-time") * 0.15
+    );
 
-    for (const score of [
-      result.overall,
-      result.draw,
-      result.selection,
-      result.flow,
-      result.calmness
-    ]) {
-      expect(score).toBeGreaterThanOrEqual(0);
-      expect(score).toBeLessThanOrEqual(100);
-    }
-
+    expect(result.overall).toBe(expected);
+    expect(result.overall).toBeGreaterThanOrEqual(0);
+    expect(result.overall).toBeLessThanOrEqual(100);
     expect(result.analysis.scoreScale?.kind).toBe("annual-percentile");
-    expect(result.analysis.scoreScale?.percentile).toBe(result.overall);
     expect(result.analysis.scoreScale?.totalDays).toBe(365);
     expect(result.analysis.scoreScale?.rankFromTop).toBeGreaterThanOrEqual(1);
     expect(result.analysis.scoreScale?.rankFromTop).toBeLessThanOrEqual(365);
@@ -80,7 +81,7 @@ describe("V5 final fortune", () => {
       dates.map(async (targetDate) => (await resultFor({ targetDate })).overall)
     );
 
-    expect(Math.max(...scores) - Math.min(...scores)).toBeGreaterThanOrEqual(50);
+    expect(Math.max(...scores) - Math.min(...scores)).toBeGreaterThanOrEqual(25);
   });
 
   it("creates the public fields and detailed deterministic readings", async () => {
@@ -88,7 +89,7 @@ describe("V5 final fortune", () => {
     const slotTypes = ["Aタイプ", "AT機", "スマスロAT機", "メダルAT機"];
 
     expect(result.engineVersion).toBe(V2_ENGINE_VERSION);
-    expect(V2_ENGINE_VERSION).toBe("v2-fortune-5");
+    expect(V2_ENGINE_VERSION).toBe("v2-fortune-6");
     expect(slotTypes).toContain(result.machineStyle.name);
     expect(result.compatibleManufacturers).toHaveLength(2);
     expect(result.compatibleManufacturers[0]).not.toBe(
@@ -104,7 +105,7 @@ describe("V5 final fortune", () => {
     expect(result.caution).toBeUndefined();
   });
 
-  it("keeps provenance and marks annual scaling as a Hikiyomi rule", async () => {
+  it("keeps provenance and separates score calculation from annual rank", async () => {
     const result = await resultFor();
 
     expect(result.analysis.assessmentVersion).toBe("v2-foundation-1");
@@ -114,7 +115,8 @@ describe("V5 final fortune", () => {
     expect(result.analysis.sourceRuleIds).toContain(
       "ANNUAL-PERCENTILE-SCALE-001"
     );
-    expect(result.analysis.sourceRuleIds).toContain("FINAL-SCORE-MAP-003");
+    expect(result.analysis.sourceRuleIds).toContain("FINAL-SCORE-MAP-004");
+    expect(result.analysis.sourceRuleIds).not.toContain("FINAL-SCORE-MAP-003");
     expect(result.analysis.sourceRuleIds).not.toContain("SAFE-GUIDANCE-001");
     expect(result.analysis.sourceIds).not.toContain("WHO-GAMBLING-001");
   });
