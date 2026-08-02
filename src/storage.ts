@@ -80,6 +80,30 @@ export async function setBirthTimeUnknown(
   await clearUserFortunes(db, userId);
 }
 
+export async function setPlayLocation(
+  db: D1Database,
+  userId: string,
+  location: string | null
+): Promise<void> {
+  await ensureUser(db, userId);
+  await db
+    .prepare("UPDATE users SET play_location = ?, updated_at = ? WHERE user_id = ?")
+    .bind(location, nowIso(), userId)
+    .run();
+}
+
+export async function setPlayPeriod(
+  db: D1Database,
+  userId: string,
+  period: string | null
+): Promise<void> {
+  await ensureUser(db, userId);
+  await db
+    .prepare("UPDATE users SET play_period = ?, updated_at = ? WHERE user_id = ?")
+    .bind(period, nowIso(), userId)
+    .run();
+}
+
 export async function markUserInactive(
   db: D1Database,
   userId: string
