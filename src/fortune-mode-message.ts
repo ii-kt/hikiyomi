@@ -13,7 +13,7 @@ export function fortuneModeMessage(birthTimeKnown: boolean): LineMessage {
         },
         {
           type: "text",
-          text: "出生時刻は任意です。追加するとガチ読みに時支の根拠が増えます。",
+          text: "出生時刻は任意です。分かる場合は追加すると、ガチ読みの鑑定内容が詳しくなります。",
           wrap: true,
           size: "xs",
           color: MUTED,
@@ -25,7 +25,7 @@ export function fortuneModeMessage(birthTimeKnown: boolean): LineMessage {
           height: "sm",
           action: {
             type: "postback",
-            label: "出生時刻を任意で追加",
+            label: "出生時刻を追加する",
             data: "action=edit_birthtime",
             displayText: "出生時刻を追加"
           }
@@ -34,9 +34,10 @@ export function fortuneModeMessage(birthTimeKnown: boolean): LineMessage {
 
   return {
     type: "flex",
-    altText: "スロ運の読み方を選んでください",
+    altText: "今日のスロ運の表示内容を選んでください",
     contents: {
       type: "bubble",
+      size: "mega",
       header: {
         type: "box",
         layout: "vertical",
@@ -48,14 +49,16 @@ export function fortuneModeMessage(birthTimeKnown: boolean): LineMessage {
             text: "今日のスロ運",
             color: "#FFFFFF",
             weight: "bold",
-            size: "xl"
+            size: "xl",
+            wrap: true
           },
           {
             type: "text",
-            text: "読み方を選ぶ",
+            text: "表示する内容を選んでください",
             color: "#E5E7EB",
             size: "sm",
-            margin: "sm"
+            margin: "sm",
+            wrap: true
           }
         ]
       },
@@ -78,8 +81,9 @@ export function fortuneModeMessage(birthTimeKnown: boolean): LineMessage {
           },
           {
             type: "text",
-            text: "点数と相性要素を5秒で確認",
+            text: "点数と今日のおすすめを簡潔に表示",
             align: "center",
+            wrap: true,
             size: "xs",
             color: MUTED
           },
@@ -95,7 +99,7 @@ export function fortuneModeMessage(birthTimeKnown: boolean): LineMessage {
           },
           {
             type: "text",
-            text: "占術的な根拠と「要はスロットでいうと」まで読む",
+            text: "点数の理由と、スロット向けの解釈まで詳しく表示",
             align: "center",
             wrap: true,
             size: "xs",
