@@ -27,7 +27,7 @@ const user: UserRecord = {
   updated_at: "2026-07-29T00:00:00.000Z"
 };
 const fortune: FortuneResult = {
-  engineVersion: "v2-fortune-4",
+  engineVersion: "v2-fortune-7",
   date: "2026-07-29",
   overall: 72,
   rank: "好調",
@@ -52,7 +52,8 @@ const fortune: FortuneResult = {
     mainFactors: ["対象日の干支", "六十干支距離"],
     conflicts: [],
     sourceRuleIds: ["FINAL-SCORE-MAP-002"],
-    sourceIds: ["NAOJ-KANSHI-001", "HIKIYOMI-METHOD-001"]
+    sourceIds: ["NAOJ-KANSHI-001", "HIKIYOMI-METHOD-001"],
+    slotSummary: "今日は必要以上に弱気にならず、自分のヒキを信じて楽しむ日です。"
   }
 };
 
@@ -113,7 +114,7 @@ describe("LINE UI messages", () => {
   it("shows detailed roots outside the main result card", () => {
     const serialized = json(reasonMessage(fortune, baseUrl));
     expect(serialized).toContain("【占術的な根拠】");
-    expect(serialized).toContain("【要はスロットでいうと】");
+    expect(serialized).toContain("【今日のヒキヨミ】");
     expect(serialized).not.toContain("74%");
   });
 
