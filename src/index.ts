@@ -34,7 +34,9 @@ import {
   saveFortune,
   setBirthDate,
   setBirthTime,
-  setBirthTimeUnknown
+  setBirthTimeUnknown,
+  setPlayLocation,
+  setPlayPeriod
 } from "./storage";
 import { setBirthLocation } from "./storage-location";
 import type {
@@ -98,7 +100,8 @@ async function handleEvent(event: LineWebhookEvent, env: Env, baseUrl: string): 
 }
 
 async function handlePostback(event: LineWebhookEvent, env: Env, userId: string, replyToken: string, baseUrl: string): Promise<void> {
-  const action = new URLSearchParams(event.postback?.data ?? "").get("action");
+  const params = new URLSearchParams(event.postback?.data ?? "");
+  const action = params.get("action");
   if (action === "start_registration" || action === "edit_birthdate") {
     await replyMessages(env, replyToken, [birthDateMessage(baseUrl, action === "edit_birthdate")]); return;
   }
@@ -133,6 +136,18 @@ async function handlePostback(event: LineWebhookEvent, env: Env, userId: string,
   if (action === "edit_birthlocation") {
     const user = await getUser(env.DB, userId);
     await replyMessages(env, replyToken, [user?.birth_date ? birthLocationMessage() : birthDateMessage(baseUrl)]); return;
+  }
+  if (action === "edit_playlocation") {
+    await replyMessages(env, replyToken, [simpleText("今日打つ地域を「遊技地域: 浜松市」の形式で送ってください。市区町村までで十分です。未設定に戻す場合は「遊技地域: 未定」と送ってください。")]); return;
+  }
+  if (action === "edit_playperiod") {
+    await replyMessages(env, replyToken, [playPeriodMessage()]); return;
+  }
+  if (action === "set_playperiod") {
+    const period = normalizePlayPeriod(params.get("value"));
+    await setPlayPeriod(env.DB, userId, period);
+    const user = await getUser(env.DB, userId);
+    await replyMessages(env, replyToken, user ? [fortuneModeMessage(user)] : [unknownMessage()]); return;
   }
   if (action === "fortune") { await sendFortuneMode(env, userId, replyToken, baseUrl); return; }
   if (action === "fortune_quick") { await sendFortune(env, userId, replyToken, baseUrl, "quick"); return; }
@@ -175,6 +190,14 @@ async function handleText(text: string, env: Env, userId: string, replyToken: st
     return;
   }
 
+  const playLocation = normalizePlayLocationText(normalized);
+  if (playLocation !== undefined) {
+    await setPlayLocation(env.DB, userId, playLocation);
+    const updated = await getUser(env.DB, userId);
+    await replyMessages(env, replyToken, updated ? [fortuneModeMessage(updated)] : [unknownMessage()]);
+    return;
+  }
+
   if (getRegistrationStep(user) === "birth-time") {
     if (isBirthTimeUnknownText(normalized)) {
       await setBirthTimeUnknown(env.DB, userId);
@@ -202,6 +225,12 @@ async function handleText(text: string, env: Env, userId: string, replyToken: st
   if (/^(出生地変更|出生地を変更|出生地を追加)$/.test(normalized)) {
     await replyMessages(env, replyToken, [user?.birth_date ? birthLocationMessage() : birthDateMessage(baseUrl)]); return;
   }
+  if (/^(今日打つ地域|遊技地域|地域を設定)$/.test(normalized)) {
+    await replyMessages(env, replyToken, [simpleText("「遊技地域: 浜松市」の形式で送ってください。")]); return;
+  }
+  if (/^(遊技予定|予定時間|時間を設定)$/.test(normalized)) {
+    await replyMessages(env, replyToken, [playPeriodMessage()]); return;
+  }
   if (getRegistrationStep(user) !== "complete") { await replyMessages(env, replyToken, [registrationMessage(user, baseUrl)]); return; }
   await replyMessages(env, replyToken, [unknownMessage()]);
 }
@@ -211,7 +240,7 @@ async function sendFortuneMode(env: Env, userId: string, replyToken: string, bas
   if (getRegistrationStep(user) !== "complete" || !user?.birth_date) {
     await replyMessages(env, replyToken, [registrationMessage(user, baseUrl)]); return;
   }
-  await replyMessages(env, replyToken, [fortuneModeMessage(user.birth_time_known === 1 && Boolean(user.birth_time))]);
+  await replyMessages(env, replyToken, [fortuneModeMessage(user)]);
 }
 
 async function sendFortune(env: Env, userId: string, replyToken: string, baseUrl: string, mode: FortuneReadingMode): Promise<void> {
@@ -219,7 +248,7 @@ async function sendFortune(env: Env, userId: string, replyToken: string, baseUrl
   if (getRegistrationStep(user) !== "complete" || !user?.birth_date) {
     await replyMessages(env, replyToken, [registrationMessage(user, baseUrl)]); return;
   }
-  const fortune = await getOrCreateTodayFortune(env, userId, user);
+  const fortune = personalizeFortune(await getOrCreateTodayFortune(env, userId, user), user);
   await replyMessages(env, replyToken, fortuneMessages(fortune, baseUrl, mode));
 }
 
@@ -228,7 +257,7 @@ async function sendReason(env: Env, userId: string, replyToken: string, baseUrl:
   if (getRegistrationStep(user) !== "complete" || !user?.birth_date) {
     await replyMessages(env, replyToken, [registrationMessage(user, baseUrl)]); return;
   }
-  const fortune = await getOrCreateTodayFortune(env, userId, user);
+  const fortune = personalizeFortune(await getOrCreateTodayFortune(env, userId, user), user);
   await replyMessages(env, replyToken, [reasonMessage(fortune, baseUrl)]);
 }
 
@@ -244,6 +273,60 @@ async function getOrCreateTodayFortune(env: Env, userId: string, user: UserRecor
     fortune = (await getFortune(env.DB, userId, date)) ?? candidate;
   }
   return fortune;
+}
+
+function personalizeFortune(fortune: FortuneResult, user: UserRecord): FortuneResult {
+  const context: string[] = [];
+  if (user.play_location) context.push(`今日打つ地域は${user.play_location}です。`);
+  if (user.play_period) {
+    context.push(`遊技予定は${user.play_period}です。基準のラッキータイムは${fortune.luckyTime}なので、予定時間内では焦らず相性要素が重なる場面を優先してください。`);
+  }
+  if (context.length === 0) return fortune;
+  const slotSummary = [fortune.analysis?.slotSummary, ...context].filter(Boolean).join("\n");
+  return {
+    ...fortune,
+    narrative: `${fortune.narrative}\n${context.join(" ")}`,
+    analysis: fortune.analysis ? { ...fortune.analysis, slotSummary } : fortune.analysis
+  };
+}
+
+function normalizePlayLocationText(text: string): string | null | undefined {
+  const match = text.match(/^(?:今日打つ地域|遊技地域|打つ地域)\s*[:：]\s*(.+)$/);
+  if (!match) return undefined;
+  const value = match[1]?.trim() ?? "";
+  if (!value || /^(未定|未設定|なし|削除)$/.test(value)) return null;
+  return value.slice(0, 80);
+}
+
+function normalizePlayPeriod(value: string | null): string | null {
+  if (!value || value === "undecided") return null;
+  const labels: Record<string, string> = {
+    morning: "朝イチ",
+    daytime: "昼から",
+    evening: "夕方から",
+    night: "夜から"
+  };
+  return labels[value] ?? null;
+}
+
+function playPeriodMessage(): LineMessage {
+  const items = [
+    ["朝イチ", "morning"],
+    ["昼から", "daytime"],
+    ["夕方から", "evening"],
+    ["夜から", "night"],
+    ["未定", "undecided"]
+  ];
+  return {
+    type: "text",
+    text: "今日の遊技予定を選んでください。総合点は変えず、時間帯の説明に反映します。",
+    quickReply: {
+      items: items.map(([label, value]) => ({
+        type: "action",
+        action: { type: "postback", label, data: `action=set_playperiod&value=${value}`, displayText: label }
+      }))
+    }
+  };
 }
 
 function registrationMessage(user: UserRecord | null, baseUrl: string): LineMessage {
