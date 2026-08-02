@@ -1,7 +1,6 @@
 import type { FortuneAnalysis, FortuneSystemReading } from "../types";
 import {
   createV2Fortune as createV5Fortune,
-  fallbackV2Narrative as fallbackV5Narrative,
   type V2FortuneDraft as V5FortuneDraft
 } from "./fortune-v5";
 import type { FoundationAssessment } from "./types";
@@ -35,7 +34,11 @@ export function createV2Fortune(
       ),
       "FINAL-SCORE-MAP-004"
     ],
-    slotSummary: scoreSummary(overall, base.analysis.scoreScale?.rankFromTop, base.analysis.scoreScale?.totalDays)
+    slotSummary: scoreSummary(
+      overall,
+      base.analysis.scoreScale?.rankFromTop,
+      base.analysis.scoreScale?.totalDays
+    )
   };
 
   return {
@@ -49,7 +52,12 @@ export function createV2Fortune(
 }
 
 export function fallbackV2Narrative(fortune: V2FortuneDraft): string {
-  return fallbackV5Narrative(fortune);
+  const scale = fortune.analysis.scoreScale;
+  const position = scale
+    ? `${scale.year}年の${scale.totalDays}日中、上位${scale.rankFromTop}位`
+    : "今日の個人運";
+
+  return `${position}、各占術要素の加重合計は${fortune.overall}点です。今日は「${fortune.machineStyle.name}」と相性が出ています。相性メーカーは${fortune.compatibleManufacturers.join("／")}。ラッキー末尾は${fortune.luckyDigit}、ラッキーカラーは${fortune.luckyColor.name}です。`;
 }
 
 function weightedOverall(
