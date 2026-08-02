@@ -23,7 +23,7 @@ async function resultFor(overrides: Partial<typeof baseInput> = {}) {
   return createV2Fortune(assessment);
 }
 
-describe("V4 final fortune", () => {
+describe("V5 final fortune", () => {
   it("returns exactly the same result for the same assessment input", async () => {
     expect(await resultFor()).toEqual(await resultFor());
   });
@@ -34,13 +34,13 @@ describe("V4 final fortune", () => {
     );
   });
 
-  it("does not let secret variation change the displayed result", async () => {
+  it("does not let the secret salt change the displayed result", async () => {
     expect(await resultFor({ salt: "salt-a" })).toEqual(
       await resultFor({ salt: "salt-b" })
     );
   });
 
-  it("creates the public and internal scores inside the allowed range", async () => {
+  it("uses the full 0-100 display scale and records the annual position", async () => {
     const result = await resultFor();
 
     for (const score of [
@@ -50,26 +50,45 @@ describe("V4 final fortune", () => {
       result.flow,
       result.calmness
     ]) {
-      expect(score).toBeGreaterThanOrEqual(20);
-      expect(score).toBeLessThanOrEqual(95);
+      expect(score).toBeGreaterThanOrEqual(0);
+      expect(score).toBeLessThanOrEqual(100);
     }
 
-    expect(result.overall).toBe(
-      Math.round(
-        result.draw * 0.3 +
-          result.selection * 0.25 +
-          result.flow * 0.2 +
-          result.calmness * 0.25
-      )
-    );
+    expect(result.analysis.scoreScale?.kind).toBe("annual-percentile");
+    expect(result.analysis.scoreScale?.percentile).toBe(result.overall);
+    expect(result.analysis.scoreScale?.totalDays).toBe(365);
+    expect(result.analysis.scoreScale?.rankFromTop).toBeGreaterThanOrEqual(1);
+    expect(result.analysis.scoreScale?.rankFromTop).toBeLessThanOrEqual(365);
   });
 
-  it("produces only fortune-focused public fields", async () => {
+  it("produces visibly different scores across the year", async () => {
+    const dates = [
+      "2026-01-15",
+      "2026-02-15",
+      "2026-03-15",
+      "2026-04-15",
+      "2026-05-15",
+      "2026-06-15",
+      "2026-07-15",
+      "2026-08-15",
+      "2026-09-15",
+      "2026-10-15",
+      "2026-11-15",
+      "2026-12-15"
+    ];
+    const scores = await Promise.all(
+      dates.map(async (targetDate) => (await resultFor({ targetDate })).overall)
+    );
+
+    expect(Math.max(...scores) - Math.min(...scores)).toBeGreaterThanOrEqual(50);
+  });
+
+  it("creates the public fields and detailed deterministic readings", async () => {
     const result = await resultFor();
     const slotTypes = ["Aタイプ", "AT機", "スマスロAT機", "メダルAT機"];
 
     expect(result.engineVersion).toBe(V2_ENGINE_VERSION);
-    expect(V2_ENGINE_VERSION).toBe("v2-fortune-4");
+    expect(V2_ENGINE_VERSION).toBe("v2-fortune-5");
     expect(slotTypes).toContain(result.machineStyle.name);
     expect(result.compatibleManufacturers).toHaveLength(2);
     expect(result.compatibleManufacturers[0]).not.toBe(
@@ -77,20 +96,25 @@ describe("V4 final fortune", () => {
     );
     expect(result.luckyDigit).toBeGreaterThanOrEqual(0);
     expect(result.luckyDigit).toBeLessThanOrEqual(9);
+    expect(result.analysis.systems?.length).toBeGreaterThanOrEqual(4);
+    expect(result.analysis.slotSummary).toContain("要するにスロットでいうと");
+    expect(result.analysis.birthTimeUsed).toBe(true);
     expect(result.luckyItem).toBeUndefined();
     expect(result.theme).toBeUndefined();
     expect(result.caution).toBeUndefined();
   });
 
-  it("removes safety guidance provenance from the fortune result", async () => {
+  it("keeps provenance and marks annual scaling as a Hikiyomi rule", async () => {
     const result = await resultFor();
 
     expect(result.analysis.assessmentVersion).toBe("v2-foundation-1");
-    expect(result.analysis.consensus).toBeGreaterThanOrEqual(0.35);
+    expect(result.analysis.consensus).toBeGreaterThanOrEqual(0.2);
     expect(result.analysis.consensus).toBeLessThanOrEqual(0.98);
-    expect(result.analysis.mainFactors.length).toBeGreaterThanOrEqual(2);
-    expect(result.analysis.sourceRuleIds).toContain("FINAL-SCORE-MAP-002");
-    expect(result.analysis.sourceRuleIds).toContain("SLOT-TYPE-SYMBOLIC-001");
+    expect(result.analysis.mainFactors.length).toBeGreaterThanOrEqual(4);
+    expect(result.analysis.sourceRuleIds).toContain(
+      "ANNUAL-PERCENTILE-SCALE-001"
+    );
+    expect(result.analysis.sourceRuleIds).toContain("FINAL-SCORE-MAP-003");
     expect(result.analysis.sourceRuleIds).not.toContain("SAFE-GUIDANCE-001");
     expect(result.analysis.sourceIds).not.toContain("WHO-GAMBLING-001");
   });
@@ -103,6 +127,7 @@ describe("V4 final fortune", () => {
     expect(narrative).toContain(result.machineStyle.name);
     expect(narrative).toContain(result.compatibleManufacturers[0]);
     expect(narrative).toContain(result.luckyColor.name);
+    expect(narrative).toContain("日中、上位");
     expect(narrative).not.toMatch(/上限|取り返|休憩|終了時刻|小さなメモ/);
   });
 });
