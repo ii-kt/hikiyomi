@@ -110,9 +110,10 @@ describe("LINE UI messages", () => {
     expect(serialized).not.toContain("プライバシー");
   });
 
-  it("keeps methodology outside the main result card", () => {
+  it("shows detailed roots outside the main result card", () => {
     const serialized = json(reasonMessage(fortune, baseUrl));
-    expect(serialized).toContain("使い方ページにまとめています");
+    expect(serialized).toContain("【占術的な根拠】");
+    expect(serialized).toContain("【要はスロットでいうと】");
     expect(serialized).not.toContain("74%");
   });
 

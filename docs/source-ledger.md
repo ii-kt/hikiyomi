@@ -16,13 +16,13 @@
 |---|---|---|---|---|
 | NAOJ-KANSHI-001 | A | 国立天文台 暦Wiki／干支 | 十干と十二支を組み合わせた60周期 | 使用中 |
 | NAOJ-JUNISHI-TIME-001 | A | 国立天文台 暦Wiki／十二支 | 定時法における十二支と2時間区分 | 任意入力で使用 |
-| NAOJ-24SEKKI-001 | A | 国立天文台 こよみ用語解説／二十四節気 | 太陽黄経による二十四節気の定義 | 次工程 |
+| NAOJ-24SEKKI-001 | A | 国立天文台 こよみ用語解説／二十四節気 | 太陽黄経による二十四節気の定義 | 未接続 |
 | JPL-HORIZONS-001 | A | NASA/JPL Horizons System | 太陽・月・惑星等の高精度暦データ | 未接続 |
 | IANA-TZDB-001 | A | IANA Time Zone Database | 地域別UTCオフセット・夏時間の履歴 | 出生地対応時 |
-| WHO-GAMBLING-001 | A | WHO Gambling fact sheet | 利用規約等の一般的な安全情報 | V4占い結果では不使用 |
+| WHO-GAMBLING-001 | A | WHO Gambling fact sheet | 利用規約等の一般的な安全情報 | V5占い結果では不使用 |
 | CAMBRIDGE-DIVINATION-001 | B | Cambridge University Press, Divination: A Cognitive Perspective | 占いを未知について知識を求める広範な文化的実践として整理 | サービス定義に使用 |
 | NATURE-ASTROLOGY-TEST-001 | B | Carlson, Nature 318 (1985) | 出生図による性格記述を二重盲検で検証 | 科学的非保証の境界に使用 |
-| HIKIYOMI-METHOD-001 | P | ヒキヨミ方式 v4 | 暦・数をV4のスロット向け表示へ変換する独自ルール | 使用中 |
+| HIKIYOMI-METHOD-001 | P | ヒキヨミ方式 v5 | 暦・数を年間順位の0〜100点、サク読み、ガチ読みに変換する独自ルール | 使用中 |
 
 ## URL
 
@@ -36,6 +36,14 @@
 - NATURE-ASTROLOGY-TEST-001: https://doi.org/10.1038/318419a0
 - HIKIYOMI-METHOD-001: `docs/methodology.md`
 
+## V5の規則ID
+
+- `ANNUAL-PERCENTILE-SCALE-001`: 対象年の全日を同条件で計算し、年間順位を0〜100点へ換算
+- `FINAL-SCORE-MAP-003`: 五行・十二支・六十干支・数理・任意の時支を内部値へ統合
+- `SLOT-TYPE-SYMBOLIC-001`: 対象日の五行・陰陽からスロットタイプへ変換
+- `LUCKY-DERIVATION-001`: ラッキー末尾・色・時刻の決定論的導出
+- `MANUFACTURER-DERIVATION-001`: メーカー候補2社の決定論的導出
+
 ## 運用ルール
 
 1. すべての点数増減は `ruleId` と `sourceIds` を持つ。
@@ -44,5 +52,7 @@
 4. 流派差がある解釈は、単一の事実として扱わない。
 5. 独自規則は必ず `P` と明記し、古典由来と偽らない。
 6. 外部生成AIに鑑定理由を創作させない。
-7. V4占い結果へ一般的な安全助言を混ぜない。
+7. V5占い結果へ一般的な安全助言を混ぜない。
 8. 惑星位置や時差履歴はLLMに暗算させず、公式データまたは検証済みコードで計算する。
+9. 未実装の四柱推命・九星気学・宿曜・月相・二十四節気を結果根拠として表示しない。
+10. サク読みとガチ読みは同一の保存済み点数を使い、説明量だけを変える。

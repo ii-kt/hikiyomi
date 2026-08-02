@@ -18,7 +18,7 @@ export const SOURCE_REGISTRY = [
     title: "国立天文台 こよみ用語解説／二十四節気",
     url: "https://eco.mtk.nao.ac.jp/koyomi/faq/24sekki.html",
     tier: "A",
-    role: "太陽黄経による二十四節気の定義"
+    role: "太陽黄経による二十四節気の定義。V5点数には未接続"
   },
   {
     id: "JPL-HORIZONS-001",
@@ -39,7 +39,7 @@ export const SOURCE_REGISTRY = [
     title: "WHO Gambling fact sheet",
     url: "https://www.who.int/news-room/fact-sheets/detail/gambling",
     tier: "A",
-    role: "利用規約等の一般的な安全情報。V4占い結果の生成には不使用"
+    role: "利用規約等の一般的な安全情報。V5占い結果の生成には不使用"
   },
   {
     id: "CAMBRIDGE-DIVINATION-001",
@@ -57,10 +57,10 @@ export const SOURCE_REGISTRY = [
   },
   {
     id: "HIKIYOMI-METHOD-001",
-    title: "ヒキヨミ方式 v4",
+    title: "ヒキヨミ方式 v5",
     url: "docs/methodology.md",
     tier: "P",
-    role: "暦・数をV4のスロット向け表示へ変換する独自規則"
+    role: "暦・数を年間順位の0〜100点と2種類のスロット向け表示へ変換する独自規則"
   }
 ] as const;
 
