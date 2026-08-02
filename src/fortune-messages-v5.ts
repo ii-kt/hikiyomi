@@ -164,7 +164,7 @@ function deepReadingMessage(result: FortuneResult): LineMessage {
     : "年間位置は未計算";
   const slotSummary =
     analysis?.slotSummary ??
-    "要するにスロットでいうと、相性が出たタイプ・末尾・時間帯が重なるところを見る日です。";
+    "今日は自分のヒキを信じて、いつものペースで楽しむ日です。";
 
   const systemText =
     systems.length > 0
@@ -182,7 +182,7 @@ function deepReadingMessage(result: FortuneResult): LineMessage {
       `【${formatDate(result.date)}のガチ読み】\n` +
       `総合スロ運 ${result.overall}/100（${result.rank}）\n` +
       `${position}\n\n` +
-      `【要はスロットでいうと】\n${slotSummary}\n\n` +
+      `【今日のヒキヨミ】\n${slotSummary}\n\n` +
       `【占術的な根拠】\n${systemText}\n\n` +
       `【今日の相性まとめ】\n` +
       `おすすめ：${result.machineStyle.name}\n` +
