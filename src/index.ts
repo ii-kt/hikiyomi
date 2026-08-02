@@ -35,6 +35,7 @@ import {
   setBirthDate,
   setBirthTime,
   setBirthTimeUnknown,
+  setLocationInputMode,
   setPlayLocation,
   setPlayPeriod
 } from "./storage";
@@ -102,6 +103,11 @@ async function handleEvent(event: LineWebhookEvent, env: Env, baseUrl: string): 
 async function handlePostback(event: LineWebhookEvent, env: Env, userId: string, replyToken: string, baseUrl: string): Promise<void> {
   const params = new URLSearchParams(event.postback?.data ?? "");
   const action = params.get("action");
+
+  if (action !== "edit_birthlocation" && action !== "edit_playlocation") {
+    await setLocationInputMode(env.DB, userId, null);
+  }
+
   if (action === "start_registration" || action === "edit_birthdate") {
     await replyMessages(env, replyToken, [birthDateMessage(baseUrl, action === "edit_birthdate")]); return;
   }
@@ -135,10 +141,13 @@ async function handlePostback(event: LineWebhookEvent, env: Env, userId: string,
   }
   if (action === "edit_birthlocation") {
     const user = await getUser(env.DB, userId);
-    await replyMessages(env, replyToken, [user?.birth_date ? birthLocationMessage() : birthDateMessage(baseUrl)]); return;
+    if (!user?.birth_date) { await replyMessages(env, replyToken, [birthDateMessage(baseUrl)]); return; }
+    await setLocationInputMode(env.DB, userId, "awaiting_birth_location");
+    await replyMessages(env, replyToken, [birthLocationMessage()]); return;
   }
   if (action === "edit_playlocation") {
-    await replyMessages(env, replyToken, [simpleText("今日打つ地域を「遊技地域: 浜松市」の形式で送ってください。市区町村までで十分です。未設定に戻す場合は「遊技地域: 未定」と送ってください。")]); return;
+    await setLocationInputMode(env.DB, userId, "awaiting_play_location");
+    await replyMessages(env, replyToken, [simpleText("今日打つ市区町村名をそのまま送ってください。例：○○市\n未設定に戻す場合は「未定」と送ってください。")]); return;
   }
   if (action === "edit_playperiod") {
     await replyMessages(env, replyToken, [playPeriodMessage()]); return;
@@ -178,10 +187,14 @@ async function handleText(text: string, env: Env, userId: string, replyToken: st
   }
 
   const user = await getUser(env.DB, userId);
-  const birthLocation = normalizeBirthLocationText(normalized);
-  if (birthLocation) {
-    if (!user?.birth_date) { await replyMessages(env, replyToken, [birthDateMessage(baseUrl)]); return; }
+
+  if (user?.status === "awaiting_birth_location") {
+    const birthLocation = normalizeBirthLocationText(normalized);
+    if (!birthLocation) {
+      await replyMessages(env, replyToken, [simpleText("市区町村名をそのまま送ってください。例：○○市")]); return;
+    }
     await setBirthLocation(env.DB, userId, birthLocation);
+    await setLocationInputMode(env.DB, userId, null);
     const updated = await getUser(env.DB, userId);
     await replyMessages(env, replyToken, [
       simpleText(`出生地を「${birthLocation}」で登録しました。`),
@@ -190,8 +203,13 @@ async function handleText(text: string, env: Env, userId: string, replyToken: st
     return;
   }
 
-  const playLocation = normalizePlayLocationText(normalized);
-  if (playLocation !== undefined) {
+  if (user?.status === "awaiting_play_location") {
+    const playLocation = /^(未定|未設定|なし|削除)$/.test(normalized)
+      ? null
+      : normalizeBirthLocationText(normalized);
+    if (playLocation === null && !/^(未定|未設定|なし|削除)$/.test(normalized)) {
+      await replyMessages(env, replyToken, [simpleText("市区町村名をそのまま送ってください。例：○○市")]); return;
+    }
     await setPlayLocation(env.DB, userId, playLocation);
     const updated = await getUser(env.DB, userId);
     await replyMessages(env, replyToken, updated ? [fortuneModeMessage(updated)] : [unknownMessage()]);
@@ -223,10 +241,13 @@ async function handleText(text: string, env: Env, userId: string, replyToken: st
     await replyMessages(env, replyToken, [user?.birth_date ? birthTimeMessage(baseUrl, true) : birthDateMessage(baseUrl)]); return;
   }
   if (/^(出生地変更|出生地を変更|出生地を追加)$/.test(normalized)) {
-    await replyMessages(env, replyToken, [user?.birth_date ? birthLocationMessage() : birthDateMessage(baseUrl)]); return;
+    if (!user?.birth_date) { await replyMessages(env, replyToken, [birthDateMessage(baseUrl)]); return; }
+    await setLocationInputMode(env.DB, userId, "awaiting_birth_location");
+    await replyMessages(env, replyToken, [birthLocationMessage()]); return;
   }
   if (/^(今日打つ地域|遊技地域|地域を設定)$/.test(normalized)) {
-    await replyMessages(env, replyToken, [simpleText("「遊技地域: 浜松市」の形式で送ってください。")]); return;
+    await setLocationInputMode(env.DB, userId, "awaiting_play_location");
+    await replyMessages(env, replyToken, [simpleText("今日打つ市区町村名をそのまま送ってください。例：○○市")]); return;
   }
   if (/^(遊技予定|予定時間|時間を設定)$/.test(normalized)) {
     await replyMessages(env, replyToken, [playPeriodMessage()]); return;
@@ -288,14 +309,6 @@ function personalizeFortune(fortune: FortuneResult, user: UserRecord): FortuneRe
     narrative: `${fortune.narrative}\n${context.join(" ")}`,
     analysis: fortune.analysis ? { ...fortune.analysis, slotSummary } : fortune.analysis
   };
-}
-
-function normalizePlayLocationText(text: string): string | null | undefined {
-  const match = text.match(/^(?:今日打つ地域|遊技地域|打つ地域)\s*[:：]\s*(.+)$/);
-  if (!match) return undefined;
-  const value = match[1]?.trim() ?? "";
-  if (!value || /^(未定|未設定|なし|削除)$/.test(value)) return null;
-  return value.slice(0, 80);
 }
 
 function normalizePlayPeriod(value: string | null): string | null {
