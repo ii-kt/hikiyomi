@@ -55,9 +55,11 @@ export function settingsMessage(user: UserRecord, baseUrl: string): LineMessage 
           valueCard("生年月日", formatFullDate(user.birth_date ?? "")),
           valueCard("出生時刻", birthTime),
           valueCard("出生地", birthplace),
+          valueCard("今日打つ地域", user.play_location ?? "未設定（任意）"),
+          valueCard("遊技予定", user.play_period ?? "未定（任意）"),
           {
             type: "text",
-            text: "出生時刻と出生地は任意です。出生地は正式な経度・時差補正を実装するまでは点数計算に使用しません。",
+            text: "生年月日は必須です。出生時刻・出生地・今日打つ地域・遊技予定は任意です。地域と予定時間は総合点を変えず、時間帯の説明に使います。",
             wrap: true,
             size: "xs",
             color: MUTED
@@ -65,6 +67,8 @@ export function settingsMessage(user: UserRecord, baseUrl: string): LineMessage 
           button("生年月日を変更", "action=edit_birthdate", "primary"),
           button(birthTimeKnown ? "出生時刻を変更" : "出生時刻を任意で追加", "action=edit_birthtime", "secondary"),
           button(birthplace === "未登録（任意）" ? "出生地を任意で追加" : "出生地を変更", "action=edit_birthlocation", "secondary"),
+          button(user.play_location ? "今日打つ地域を変更" : "今日打つ地域を設定", "action=edit_playlocation", "secondary"),
+          button(user.play_period ? "遊技予定を変更" : "遊技予定を設定", "action=edit_playperiod", "secondary"),
           {
             type: "button",
             style: "link",
