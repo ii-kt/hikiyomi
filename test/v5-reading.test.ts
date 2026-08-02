@@ -26,7 +26,7 @@ const fortune: FortuneResult = {
     name: "スマスロAT機",
     meaning: "水の陽が示す大きな流動を、展開変化の大きいタイプへ対応させた候補"
   },
-  compatibleManufacturers: ["サミー", "SANKYO"],
+  compatibleManufacturers: ["ニューギン", "コナミアミューズメント"],
   luckyTime: "19:00〜20:00",
   narrative:
     "2026年の365日中、上位52位の86点です。今日は「スマスロAT機」と相性が出ています。",
@@ -77,23 +77,27 @@ function json(value: unknown): string {
 }
 
 describe("V5 reading modes", () => {
-  it("offers サク読み and ガチ読み before calculating the display", () => {
+  it("offers concise and detailed display choices", () => {
     const message = json(fortuneModeMessage(false));
 
+    expect(message).toContain("表示する内容を選んでください");
     expect(message).toContain("サク読み");
+    expect(message).toContain("点数と今日のおすすめを簡潔に表示");
     expect(message).toContain("action=fortune_quick");
     expect(message).toContain("ガチ読み");
+    expect(message).toContain("点数の理由と、スロット向けの解釈まで詳しく表示");
     expect(message).toContain("action=fortune_deep");
-    expect(message).toContain("出生時刻を任意で追加");
+    expect(message).toContain("出生時刻を追加する");
+    expect(message).not.toContain("まで読む");
   });
 
   it("does not repeat the optional birth-time prompt when registered", () => {
     const message = json(fortuneModeMessage(true));
 
-    expect(message).not.toContain("出生時刻を任意で追加");
+    expect(message).not.toContain("出生時刻を追加する");
   });
 
-  it("returns one result message for サク読み", () => {
+  it("returns one responsive result message for サク読み", () => {
     const messages = fortuneMessages(fortune, baseUrl, "quick");
     const serialized = json(messages);
 
@@ -101,6 +105,10 @@ describe("V5 reading modes", () => {
     expect(serialized).toContain("86");
     expect(serialized).toContain("上位52位");
     expect(serialized).toContain("スマスロAT機");
+    expect(serialized).toContain('"size":"mega"');
+    expect(serialized).not.toContain('"size":"giga"');
+    expect(serialized).toContain("ニューギン\\nコナミアミューズメント");
+    expect(serialized).toContain('"adjustMode":"shrink-to-fit"');
   });
 
   it("returns the same result plus detailed roots for ガチ読み", () => {
