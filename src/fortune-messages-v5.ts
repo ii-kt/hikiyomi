@@ -30,7 +30,7 @@ export function fortuneMessage(
     altText: `${result.date}のスロ運は${result.overall}点・${result.rank}です`,
     contents: {
       type: "bubble",
-      size: "giga",
+      size: "mega",
       header: {
         type: "box",
         layout: "vertical",
@@ -41,7 +41,8 @@ export function fortuneMessage(
             type: "text",
             text: `${formatDate(result.date)}のスロ運`,
             color: "#E5E7EB",
-            size: "sm"
+            size: "sm",
+            wrap: true
           },
           {
             type: "box",
@@ -54,7 +55,8 @@ export function fortuneMessage(
                 color: "#FFFFFF",
                 weight: "bold",
                 size: "5xl",
-                flex: 0
+                flex: 0,
+                adjustMode: "shrink-to-fit"
               },
               {
                 type: "text",
@@ -62,7 +64,8 @@ export function fortuneMessage(
                 color: "#D1D5DB",
                 size: "md",
                 margin: "sm",
-                flex: 0
+                flex: 0,
+                adjustMode: "shrink-to-fit"
               },
               {
                 type: "text",
@@ -70,7 +73,9 @@ export function fortuneMessage(
                 color: "#FFE9A7",
                 weight: "bold",
                 size: "lg",
-                align: "end"
+                align: "end",
+                wrap: true,
+                adjustMode: "shrink-to-fit"
               }
             ]
           },
@@ -100,7 +105,7 @@ export function fortuneMessage(
           ),
           infoRow(
             "相性メーカー",
-            result.compatibleManufacturers.join("／")
+            result.compatibleManufacturers.join("\n")
           ),
           infoRow(
             "ラッキーカラー",
@@ -122,7 +127,7 @@ export function fortuneMessage(
             height: "sm",
             action: {
               type: "postback",
-              label: "ガチ読みで根拠を見る",
+              label: "ガチ読みを見る",
               data: "action=fortune_deep",
               displayText: "ガチ読み"
             }
@@ -168,7 +173,7 @@ function deepReadingMessage(result: FortuneResult): LineMessage {
 
   const birthTimeNote =
     analysis?.birthTimeUsed === false
-      ? "\n\n【任意情報】\n出生時刻は未登録です。未登録でも点数は0〜100で算出されますが、登録すると時支の根拠が1項目増えます。"
+      ? "\n\n【任意情報】\n出生時刻は未登録です。分かる場合は追加すると、時刻に関する鑑定根拠が増えます。"
       : "";
 
   return withNavigation({
@@ -205,7 +210,8 @@ function scorePosition(result: FortuneResult): Record<string, unknown> {
       text: "個人運の0〜100点換算",
       color: "#D1D5DB",
       size: "xs",
-      margin: "sm"
+      margin: "sm",
+      wrap: true
     };
   }
 
@@ -214,7 +220,8 @@ function scorePosition(result: FortuneResult): Record<string, unknown> {
     text: `${scale.year}年 ${scale.totalDays}日中 上位${scale.rankFromTop}位`,
     color: "#D1D5DB",
     size: "xs",
-    margin: "sm"
+    margin: "sm",
+    wrap: true
   };
 }
 
@@ -261,14 +268,22 @@ function scoreLine(label: string, value: number): Record<string, unknown> {
     layout: "horizontal",
     alignItems: "center",
     contents: [
-      { type: "text", text: label, size: "sm", color: MUTED, flex: 4 },
+      {
+        type: "text",
+        text: label,
+        size: "sm",
+        color: MUTED,
+        flex: 3,
+        wrap: true
+      },
       {
         type: "text",
         text: String(value),
         size: "sm",
         weight: "bold",
         align: "end",
-        flex: 1
+        flex: 1,
+        adjustMode: "shrink-to-fit"
       },
       {
         type: "box",
@@ -302,20 +317,28 @@ function luckyDigitCard(value: number): Record<string, unknown> {
     cornerRadius: "md",
     paddingAll: "14px",
     contents: [
-      { type: "text", text: "ラッキー末尾", color: MUTED, size: "xs" },
+      {
+        type: "text",
+        text: "ラッキー末尾",
+        color: MUTED,
+        size: "xs",
+        wrap: true
+      },
       {
         type: "text",
         text: String(value),
         weight: "bold",
         size: "3xl",
-        margin: "sm"
+        margin: "sm",
+        adjustMode: "shrink-to-fit"
       },
       {
         type: "text",
         text: "同条件で迷ったときの目印",
         color: MUTED,
         size: "xs",
-        margin: "xs"
+        margin: "xs",
+        wrap: true
       }
     ]
   };
@@ -331,10 +354,30 @@ function infoRow(
     layout: "vertical",
     spacing: "xs",
     contents: [
-      { type: "text", text: label, color: MUTED, size: "xs" },
-      { type: "text", text: value, weight: "bold", size: "md", wrap: true },
+      {
+        type: "text",
+        text: label,
+        color: MUTED,
+        size: "xs",
+        wrap: true
+      },
+      {
+        type: "text",
+        text: value,
+        weight: "bold",
+        size: "md",
+        wrap: true
+      },
       ...(detail
-        ? [{ type: "text", text: detail, color: MUTED, size: "xs", wrap: true }]
+        ? [
+            {
+              type: "text",
+              text: detail,
+              color: MUTED,
+              size: "xs",
+              wrap: true
+            }
+          ]
         : [])
     ]
   };
