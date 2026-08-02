@@ -1,6 +1,8 @@
 import { nowIso } from "./date";
 import type { FortuneResult, UserRecord } from "./types";
 
+export type LocationInputMode = "awaiting_birth_location" | "awaiting_play_location";
+
 export async function getUser(
   db: D1Database,
   userId: string
@@ -20,9 +22,23 @@ export async function ensureUser(
     .prepare(
       `INSERT INTO users (user_id, adult_confirmed, birth_date, status, created_at, updated_at)
        VALUES (?, 0, NULL, 'active', ?, ?)
-       ON CONFLICT(user_id) DO UPDATE SET status = 'active', updated_at = excluded.updated_at`
+       ON CONFLICT(user_id) DO UPDATE SET
+         status = CASE WHEN users.status = 'inactive' THEN 'active' ELSE users.status END,
+         updated_at = excluded.updated_at`
     )
     .bind(userId, now, now)
+    .run();
+}
+
+export async function setLocationInputMode(
+  db: D1Database,
+  userId: string,
+  mode: LocationInputMode | null
+): Promise<void> {
+  await ensureUser(db, userId);
+  await db
+    .prepare("UPDATE users SET status = ?, updated_at = ? WHERE user_id = ?")
+    .bind(mode ?? "active", nowIso(), userId)
     .run();
 }
 
@@ -39,6 +55,7 @@ export async function setBirthDate(
            birth_date = ?,
            birth_time = NULL,
            birth_time_known = -1,
+           status = 'active',
            updated_at = ?
        WHERE user_id = ?`
     )
@@ -56,7 +73,7 @@ export async function setBirthTime(
   await db
     .prepare(
       `UPDATE users
-       SET birth_time = ?, birth_time_known = 1, updated_at = ?
+       SET birth_time = ?, birth_time_known = 1, status = 'active', updated_at = ?
        WHERE user_id = ?`
     )
     .bind(birthTime, nowIso(), userId)
@@ -72,7 +89,7 @@ export async function setBirthTimeUnknown(
   await db
     .prepare(
       `UPDATE users
-       SET birth_time = NULL, birth_time_known = 0, updated_at = ?
+       SET birth_time = NULL, birth_time_known = 0, status = 'active', updated_at = ?
        WHERE user_id = ?`
     )
     .bind(nowIso(), userId)
@@ -87,7 +104,7 @@ export async function setPlayLocation(
 ): Promise<void> {
   await ensureUser(db, userId);
   await db
-    .prepare("UPDATE users SET play_location = ?, updated_at = ? WHERE user_id = ?")
+    .prepare("UPDATE users SET play_location = ?, status = 'active', updated_at = ? WHERE user_id = ?")
     .bind(location, nowIso(), userId)
     .run();
 }
