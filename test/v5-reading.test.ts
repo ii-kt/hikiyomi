@@ -4,11 +4,25 @@ import {
   fortuneMessages,
   reasonMessage
 } from "../src/fortune-messages";
-import type { FortuneResult } from "../src/types";
+import type { FortuneResult, UserRecord } from "../src/types";
 
 const baseUrl = "https://hikiyomi.example.workers.dev";
+const user: UserRecord = {
+  user_id: "U_TEST",
+  adult_confirmed: 1,
+  birth_date: "1996-04-18",
+  birth_time: null,
+  birth_time_known: 0,
+  birth_timezone: null,
+  birth_location_json: null,
+  play_location: null,
+  play_period: null,
+  status: "active",
+  created_at: "2026-08-02T00:00:00.000Z",
+  updated_at: "2026-08-02T00:00:00.000Z"
+};
 const fortune: FortuneResult = {
-  engineVersion: "v2-fortune-5",
+  engineVersion: "v2-fortune-7",
   date: "2026-08-02",
   overall: 86,
   rank: "強運",
@@ -67,7 +81,7 @@ const fortune: FortuneResult = {
       }
     ],
     slotSummary:
-      "今年のあなたの中で上位15%です。要するにスロットでいうと、相性が出た条件を優先しやすい日です。",
+      "今日は追い風が強い日です。自分のヒキを信じて楽しめます。",
     birthTimeUsed: true
   }
 };
@@ -76,25 +90,37 @@ function json(value: unknown): string {
   return JSON.stringify(value);
 }
 
-describe("V5 reading modes", () => {
-  it("offers concise and detailed display choices", () => {
-    const message = json(fortuneModeMessage(false));
+describe("V7 reading modes", () => {
+  it("shows optional inputs before the reading choice", () => {
+    const message = json(fortuneModeMessage(user));
 
-    expect(message).toContain("表示する内容を選んでください");
+    expect(message).toContain("任意項目を確認してください");
+    expect(message).toContain("出生時刻");
+    expect(message).toContain("出生地");
+    expect(message).toContain("今日打つ地域");
+    expect(message).toContain("遊技予定");
+    expect(message).toContain("action=edit_birthtime");
+    expect(message).toContain("action=edit_birthlocation");
+    expect(message).toContain("action=edit_playlocation");
+    expect(message).toContain("action=edit_playperiod");
     expect(message).toContain("サク読み");
-    expect(message).toContain("点数と今日のおすすめを簡潔に表示");
-    expect(message).toContain("action=fortune_quick");
     expect(message).toContain("ガチ読み");
-    expect(message).toContain("点数の理由と、スロット向けの解釈まで詳しく表示");
-    expect(message).toContain("action=fortune_deep");
-    expect(message).toContain("出生時刻を追加する");
-    expect(message).not.toContain("まで読む");
   });
 
-  it("does not repeat the optional birth-time prompt when registered", () => {
-    const message = json(fortuneModeMessage(true));
+  it("shows registered optional values", () => {
+    const message = json(fortuneModeMessage({
+      ...user,
+      birth_time: "07:31",
+      birth_time_known: 1,
+      birth_location_json: JSON.stringify({ label: "浜松市" }),
+      play_location: "豊橋市",
+      play_period: "夕方から"
+    }));
 
-    expect(message).not.toContain("出生時刻を追加する");
+    expect(message).toContain("07:31");
+    expect(message).toContain("浜松市");
+    expect(message).toContain("豊橋市");
+    expect(message).toContain("夕方から");
   });
 
   it("returns one responsive result message for サク読み", () => {
@@ -117,7 +143,7 @@ describe("V5 reading modes", () => {
 
     expect(messages).toHaveLength(2);
     expect(serialized).toContain("【占術的な根拠】");
-    expect(serialized).toContain("【要はスロットでいうと】");
+    expect(serialized).toContain("【今日のヒキヨミ】");
     expect(serialized).toContain("六十干支の巡り");
     expect(serialized).toContain("五行・陰陽");
     expect(serialized).toContain("スマスロAT機");
@@ -127,6 +153,6 @@ describe("V5 reading modes", () => {
     const serialized = json(reasonMessage(fortune, baseUrl));
 
     expect(serialized).toContain("【占術的な根拠】");
-    expect(serialized).toContain("要はスロットでいうと");
+    expect(serialized).toContain("【今日のヒキヨミ】");
   });
 });
