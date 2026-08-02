@@ -15,6 +15,8 @@ export interface UserRecord {
   birth_time_known: number;
   birth_timezone: string | null;
   birth_location_json: string | null;
+  play_location: string | null;
+  play_period: string | null;
   status: string;
   created_at: string;
   updated_at: string;
