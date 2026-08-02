@@ -25,6 +25,26 @@ export interface FortuneItem {
   meaning: string;
 }
 
+export type FortuneReadingMode = "quick" | "deep";
+
+export interface FortuneScoreScale {
+  kind: "annual-percentile";
+  year: number;
+  raw: number;
+  percentile: number;
+  rankFromTop: number;
+  totalDays: number;
+}
+
+export interface FortuneSystemReading {
+  id: "sexagenary" | "five-elements" | "branches" | "numerology" | "birth-time";
+  label: string;
+  score: number;
+  basis: string;
+  slotTranslation: string;
+  sourceIds: string[];
+}
+
 export interface FortuneAnalysis {
   assessmentVersion: string;
   confidence: "low" | "medium" | "high";
@@ -33,6 +53,10 @@ export interface FortuneAnalysis {
   conflicts: string[];
   sourceRuleIds: string[];
   sourceIds: string[];
+  scoreScale?: FortuneScoreScale;
+  systems?: FortuneSystemReading[];
+  slotSummary?: string;
+  birthTimeUsed?: boolean;
 }
 
 export interface FortuneResult {
