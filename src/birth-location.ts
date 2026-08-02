@@ -30,7 +30,7 @@ export function birthLocationMessage(): LineMessage {
         contents: [
           {
             type: "text",
-            text: "生まれた市区町村をメッセージで送ってください。例：出生地: 浜松市",
+            text: "生まれた市区町村名をそのまま送ってください。例：浜松市\n「出生地: 浜松市」の形式でも登録できます。",
             wrap: true,
             size: "sm",
             color: MUTED
@@ -54,10 +54,16 @@ export function birthLocationMessage(): LineMessage {
 }
 
 export function normalizeBirthLocationText(text: string): string | null {
-  const match = text.trim().match(/^出生地\s*[:：]\s*(.+)$/);
-  if (!match?.[1]) return null;
-  const value = match[1].trim().replace(/\s+/g, " ");
+  const normalized = text.trim().replace(/\s+/g, " ");
+  const prefixed = normalized.match(/^出生地\s*[:：]\s*(.+)$/)?.[1]?.trim();
+  const value = prefixed ?? normalized;
+
   if (value.length < 2 || value.length > 80) return null;
+
+  // 「出生地: 浜松市」に加え、設定画面から続けて送る「横浜市」のような
+  // 市区町村名単体も受け付ける。通常の自由文を誤登録しないよう末尾を限定する。
+  if (!prefixed && !/(?:市|区|町|村)$/.test(value)) return null;
+
   return value;
 }
 
