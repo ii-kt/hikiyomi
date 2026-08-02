@@ -6,7 +6,8 @@ import {
   normalizeBirthTimeText,
   todayJst
 } from "./date";
-import { fortuneMessage, reasonMessage } from "./fortune-messages";
+import { fortuneMessages, reasonMessage } from "./fortune-messages";
+import { fortuneModeMessage } from "./fortune-mode-message";
 import { createV2Narrative } from "./gemini";
 import { helpHtml, homeHtml, privacyHtml, termsHtml } from "./legal";
 import { replyMessages } from "./line";
@@ -36,6 +37,7 @@ import {
 } from "./storage";
 import type {
   Env,
+  FortuneReadingMode,
   FortuneResult,
   LineMessage,
   LineWebhookBody,
@@ -214,7 +216,17 @@ async function handlePostback(
   }
 
   if (action === "fortune") {
-    await sendFortune(env, userId, replyToken, baseUrl);
+    await sendFortuneMode(env, userId, replyToken, baseUrl);
+    return;
+  }
+
+  if (action === "fortune_quick") {
+    await sendFortune(env, userId, replyToken, baseUrl, "quick");
+    return;
+  }
+
+  if (action === "fortune_deep") {
+    await sendFortune(env, userId, replyToken, baseUrl, "deep");
     return;
   }
 
@@ -291,8 +303,18 @@ async function handleText(
     }
   }
 
+  if (/^(サク読み|簡単に|かんたんに)$/.test(normalized)) {
+    await sendFortune(env, userId, replyToken, baseUrl, "quick");
+    return;
+  }
+
+  if (/^(ガチ読み|ちゃんと見る|詳しく|くわしく)$/.test(normalized)) {
+    await sendFortune(env, userId, replyToken, baseUrl, "deep");
+    return;
+  }
+
   if (/^(今日の)?(スロ運|占い|運勢)$|占って/.test(normalized)) {
-    await sendFortune(env, userId, replyToken, baseUrl);
+    await sendFortuneMode(env, userId, replyToken, baseUrl);
     return;
   }
 
@@ -337,7 +359,7 @@ async function handleText(
   await replyMessages(env, replyToken, [unknownMessage()]);
 }
 
-async function sendFortune(
+async function sendFortuneMode(
   env: Env,
   userId: string,
   replyToken: string,
@@ -349,8 +371,25 @@ async function sendFortune(
     return;
   }
 
+  const birthTimeKnown = user.birth_time_known === 1 && Boolean(user.birth_time);
+  await replyMessages(env, replyToken, [fortuneModeMessage(birthTimeKnown)]);
+}
+
+async function sendFortune(
+  env: Env,
+  userId: string,
+  replyToken: string,
+  baseUrl: string,
+  mode: FortuneReadingMode
+): Promise<void> {
+  const user = await getUser(env.DB, userId);
+  if (getRegistrationStep(user) !== "complete" || !user?.birth_date) {
+    await replyMessages(env, replyToken, [registrationMessage(user, baseUrl)]);
+    return;
+  }
+
   const fortune = await getOrCreateTodayFortune(env, userId, user);
-  await replyMessages(env, replyToken, [fortuneMessage(fortune, baseUrl)]);
+  await replyMessages(env, replyToken, fortuneMessages(fortune, baseUrl, mode));
 }
 
 async function sendReason(
