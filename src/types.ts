@@ -74,12 +74,13 @@ export interface FortuneResult {
   luckyDigit: number;
   luckyNumbers: [number, number];
   luckyColor: FortuneItem;
+  luckyItem?: FortuneItem;
+  luckyDrink?: FortuneItem;
   machineStyle: FortuneItem;
   compatibleManufacturers: [string, string];
   luckyTime: string;
   narrative: string;
-  /** Legacy V3 fields. New results do not generate or display these. */
-  luckyItem?: FortuneItem;
+  /** Legacy fields retained only for cache compatibility. */
   theme?: string;
   caution?: string;
   analysis?: FortuneAnalysis | undefined;
