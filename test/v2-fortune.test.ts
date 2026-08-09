@@ -23,7 +23,7 @@ async function resultFor(overrides: Partial<typeof baseInput> = {}) {
   return createV2Fortune(assessment);
 }
 
-describe("V7 final fortune", () => {
+describe("V8 final fortune", () => {
   it("returns exactly the same result for the same assessment input", async () => {
     expect(await resultFor()).toEqual(await resultFor());
   });
@@ -89,7 +89,7 @@ describe("V7 final fortune", () => {
     const slotTypes = ["Aタイプ", "AT機", "スマスロAT機", "メダルAT機"];
 
     expect(result.engineVersion).toBe(V2_ENGINE_VERSION);
-    expect(V2_ENGINE_VERSION).toBe("v2-fortune-7");
+    expect(V2_ENGINE_VERSION).toBe("v2-fortune-8");
     expect(slotTypes).toContain(result.machineStyle.name);
     expect(result.compatibleManufacturers).toHaveLength(2);
     expect(result.compatibleManufacturers[0]).not.toBe(
@@ -97,12 +97,13 @@ describe("V7 final fortune", () => {
     );
     expect(result.luckyDigit).toBeGreaterThanOrEqual(0);
     expect(result.luckyDigit).toBeLessThanOrEqual(9);
+    expect(result.luckyItem?.name).toBeTruthy();
+    expect(result.luckyDrink?.name).toBeTruthy();
     expect(result.analysis.systems?.length).toBeGreaterThanOrEqual(4);
     expect(result.analysis.slotSummary).toMatch(/ヒキ|アーム|自信|追い風|楽し/);
     expect(result.analysis.slotSummary).not.toContain("各要素の加重合計");
     expect(result.analysis.slotSummary).not.toContain("要するにスロットでいうと");
     expect(result.analysis.birthTimeUsed).toBe(true);
-    expect(result.luckyItem).toBeUndefined();
     expect(result.theme).toBeUndefined();
     expect(result.caution).toBeUndefined();
   });
@@ -131,6 +132,8 @@ describe("V7 final fortune", () => {
     expect(narrative).toContain(result.machineStyle.name);
     expect(narrative).toContain(result.compatibleManufacturers[0]);
     expect(narrative).toContain(result.luckyColor.name);
+    expect(narrative).toContain(result.luckyItem?.name ?? "");
+    expect(narrative).toContain(result.luckyDrink?.name ?? "");
     expect(narrative).toContain("日中、上位");
     expect(narrative).not.toMatch(/上限|取り返|休憩|終了時刻|小さなメモ/);
   });
