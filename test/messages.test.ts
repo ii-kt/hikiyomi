@@ -27,7 +27,7 @@ const user: UserRecord = {
   updated_at: "2026-07-29T00:00:00.000Z"
 };
 const fortune: FortuneResult = {
-  engineVersion: "v2-fortune-7",
+  engineVersion: "v2-fortune-9",
   date: "2026-07-29",
   overall: 72,
   rank: "好調",
@@ -38,6 +38,20 @@ const fortune: FortuneResult = {
   luckyDigit: 7,
   luckyNumbers: [18, 42],
   luckyColor: { name: "ネイビー", meaning: "水の象徴である流動と洞察を表す色" },
+  luckyItem: { name: "ネイビーのタオル", meaning: "水の陽が示す流れと切り替えを意識するお守り" },
+  luckyDrink: { name: "ミネラルウォーター", meaning: "水の陽が示す流動と切り替えに合わせた一杯" },
+  luckyBoost: {
+    maxPoints: 16,
+    appliedPoints: 16,
+    boostedOverall: 88,
+    components: {
+      luckyDigit: 3,
+      luckyColor: 4,
+      luckyItem: 3,
+      luckyDrink: 3,
+      luckyTime: 3
+    }
+  },
   machineStyle: {
     name: "スマスロAT機",
     meaning: "水の陽が示す大きな流動を、展開変化の大きいタイプへ対応させた候補"
@@ -51,7 +65,7 @@ const fortune: FortuneResult = {
     consensus: 0.74,
     mainFactors: ["対象日の干支", "六十干支距離"],
     conflicts: [],
-    sourceRuleIds: ["FINAL-SCORE-MAP-002"],
+    sourceRuleIds: ["FINAL-SCORE-MAP-004", "LUCKY-BOOST-001"],
     sourceIds: ["NAOJ-KANSHI-001", "HIKIYOMI-METHOD-001"],
     slotSummary: "今日は必要以上に弱気にならず、自分のヒキを信じて楽しむ日です。"
   }
@@ -91,7 +105,7 @@ describe("LINE UI messages", () => {
     expect(serialized).toContain("action=settings");
   });
 
-  it("shows only fortune-focused result fields", () => {
+  it("shows the full lucky set and a separate premium-looking boost score", () => {
     const serialized = json(fortuneMessage(fortune, baseUrl));
     expect(serialized).toContain("引き運");
     expect(serialized).toContain("今日のおすすめスロットタイプ");
@@ -99,11 +113,17 @@ describe("LINE UI messages", () => {
     expect(serialized).toContain("相性メーカー");
     expect(serialized).toContain("ラッキー末尾");
     expect(serialized).toContain("ラッキーカラー");
+    expect(serialized).toContain("ラッキーアイテム");
+    expect(serialized).toContain("相性ドリンク");
     expect(serialized).toContain("ラッキータイム");
-    expect(serialized).not.toContain("ラッキーアイテム");
+    expect(serialized).toContain("ラッキー要素をすべて取り入れた場合");
+    expect(serialized).toContain("開運スコア");
+    expect(serialized).toContain("88 / 100");
+    expect(serialized).toContain("+16");
+    expect(serialized).toContain("基礎スロ運 72/100");
     expect(serialized).not.toContain("今日の立ち回りテーマ");
     expect(serialized).not.toContain("今日の注意ポイント");
-    expect(serialized).not.toMatch(/上限|取り返|休憩|終了時刻|小さなメモ|腕時計|無糖の飲み物|イヤホンケース/);
+    expect(serialized).not.toMatch(/上限|取り返|休憩|終了時刻|小さなメモ/);
     expect(serialized).not.toContain("意識する数字");
     expect(serialized).not.toContain("action=reason");
     expect(serialized).toContain("action=settings");
@@ -111,10 +131,13 @@ describe("LINE UI messages", () => {
     expect(serialized).not.toContain("プライバシー");
   });
 
-  it("shows detailed roots outside the main result card", () => {
+  it("shows detailed roots and the same boost score outside the main result card", () => {
     const serialized = json(reasonMessage(fortune, baseUrl));
     expect(serialized).toContain("【占術的な根拠】");
     expect(serialized).toContain("【今日のヒキヨミ】");
+    expect(serialized).toContain("【開運スコア】");
+    expect(serialized).toContain("88/100（+16）");
+    expect(serialized).toContain("基礎スロ運は72/100のまま");
     expect(serialized).not.toContain("74%");
   });
 
