@@ -1,20 +1,66 @@
-import type { FortuneAnalysis, FortuneSystemReading } from "../types";
+import type { FortuneAnalysis, FortuneItem, FortuneSystemReading } from "../types";
 import {
   createV2Fortune as createV5Fortune,
   type V2FortuneDraft as V5FortuneDraft
 } from "./fortune-v5";
-import type { FoundationAssessment } from "./types";
+import type { FiveElement, FoundationAssessment, Polarity } from "./types";
 
-export const V2_ENGINE_VERSION = "v2-fortune-7";
+export const V2_ENGINE_VERSION = "v2-fortune-8";
 
 export type V2FortuneDraft = Omit<V5FortuneDraft, "engineVersion"> & {
   engineVersion: typeof V2_ENGINE_VERSION;
 };
 
+const LUCKY_ITEMS: Record<FiveElement, Record<Polarity, FortuneItem>> = {
+  wood: {
+    yang: { name: "木製キーホルダー", meaning: "木の陽が示す伸びと前進を持ち歩くお守り" },
+    yin: { name: "緑のハンカチ", meaning: "木の陰が示す落ち着いた成長を身近に置くお守り" }
+  },
+  fire: {
+    yang: { name: "赤いボールペン", meaning: "火の陽が示す勢いと決断を意識するお守り" },
+    yin: { name: "赤い小物", meaning: "火の陰が示す内側の熱をそっと持つお守り" }
+  },
+  earth: {
+    yang: { name: "コインケース", meaning: "土の陽が示す安定と蓄積を意識するお守り" },
+    yin: { name: "茶色のハンカチ", meaning: "土の陰が示す落ち着きと足元の安定を表すお守り" }
+  },
+  metal: {
+    yang: { name: "腕時計", meaning: "金の陽が示す判断と切れ味を意識するお守り" },
+    yin: { name: "シルバーの小物", meaning: "金の陰が示す精密さと整いを表すお守り" }
+  },
+  water: {
+    yang: { name: "ネイビーのタオル", meaning: "水の陽が示す流れと切り替えを意識するお守り" },
+    yin: { name: "黒いイヤホン", meaning: "水の陰が示す集中と静けさを身近に置くお守り" }
+  }
+};
+
+const LUCKY_DRINKS: Record<FiveElement, Record<Polarity, FortuneItem>> = {
+  wood: {
+    yang: { name: "緑茶", meaning: "木の陽が示す伸びやかな流れに合わせた一杯" },
+    yin: { name: "ジャスミン茶", meaning: "木の陰が示す穏やかな広がりに合わせた一杯" }
+  },
+  fire: {
+    yang: { name: "ホットコーヒー", meaning: "火の陽が示す熱と勢いに合わせた一杯" },
+    yin: { name: "ルイボスティー", meaning: "火の陰が示すやわらかな熱を意識した一杯" }
+  },
+  earth: {
+    yang: { name: "ほうじ茶", meaning: "土の陽が示す安定感に合わせた一杯" },
+    yin: { name: "ミルクティー", meaning: "土の陰が示す落ち着きと包み込む感覚に合わせた一杯" }
+  },
+  metal: {
+    yang: { name: "無糖炭酸水", meaning: "金の陽が示す切れ味と明晰さを意識した一杯" },
+    yin: { name: "無糖アイスティー", meaning: "金の陰が示すすっきりした整いに合わせた一杯" }
+  },
+  water: {
+    yang: { name: "ミネラルウォーター", meaning: "水の陽が示す流動と切り替えに合わせた一杯" },
+    yin: { name: "麦茶", meaning: "水の陰が示す静かな流れに合わせた一杯" }
+  }
+};
+
 /**
- * V7 keeps the V6 weighted score calculation. The user-facing summary is
- * rewritten as a short confidence cue for slot players instead of repeating
- * the scoring formula or giving abstract selection instructions.
+ * V8 keeps the V7 weighted score calculation and restores practical lucky
+ * cues requested by users. Lucky item and drink are deterministic symbolic
+ * mappings from the target day's five-element and polarity combination.
  */
 export function createV2Fortune(
   assessment: FoundationAssessment
@@ -25,6 +71,8 @@ export function createV2Fortune(
 
   const overall = weightedOverall(systems, birthTimeUsed);
   const draw = weightedDraw(systems, birthTimeUsed);
+  const element = assessment.facts.targetDay.stem.element;
+  const polarity = assessment.facts.targetDay.stem.polarity;
   const analysis: FortuneAnalysis = {
     ...base.analysis,
     sourceRuleIds: [
@@ -42,6 +90,8 @@ export function createV2Fortune(
     overall,
     draw,
     rank: rankFor(overall),
+    luckyItem: LUCKY_ITEMS[element][polarity],
+    luckyDrink: LUCKY_DRINKS[element][polarity],
     analysis
   };
 }
@@ -51,8 +101,10 @@ export function fallbackV2Narrative(fortune: V2FortuneDraft): string {
   const position = scale
     ? `${scale.year}年の${scale.totalDays}日中、上位${scale.rankFromTop}位`
     : "今日の個人運";
+  const item = fortune.luckyItem ? `、ラッキーアイテムは${fortune.luckyItem.name}` : "";
+  const drink = fortune.luckyDrink ? `、相性ドリンクは${fortune.luckyDrink.name}` : "";
 
-  return `${position}、各占術要素の加重合計は${fortune.overall}点です。今日は「${fortune.machineStyle.name}」と相性が出ています。相性メーカーは${fortune.compatibleManufacturers.join("／")}。ラッキー末尾は${fortune.luckyDigit}、ラッキーカラーは${fortune.luckyColor.name}です。`;
+  return `${position}、各占術要素の加重合計は${fortune.overall}点です。今日は「${fortune.machineStyle.name}」と相性が出ています。相性メーカーは${fortune.compatibleManufacturers.join("／")}。ラッキー末尾は${fortune.luckyDigit}、ラッキーカラーは${fortune.luckyColor.name}${item}${drink}です。`;
 }
 
 function weightedOverall(
