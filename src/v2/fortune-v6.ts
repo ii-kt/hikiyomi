@@ -1,11 +1,16 @@
-import type { FortuneAnalysis, FortuneItem, FortuneSystemReading } from "../types";
+import type {
+  FortuneAnalysis,
+  FortuneItem,
+  FortuneLuckyBoost,
+  FortuneSystemReading
+} from "../types";
 import {
   createV2Fortune as createV5Fortune,
   type V2FortuneDraft as V5FortuneDraft
 } from "./fortune-v5";
 import type { FiveElement, FoundationAssessment, Polarity } from "./types";
 
-export const V2_ENGINE_VERSION = "v2-fortune-8";
+export const V2_ENGINE_VERSION = "v2-fortune-9";
 
 export type V2FortuneDraft = Omit<V5FortuneDraft, "engineVersion"> & {
   engineVersion: typeof V2_ENGINE_VERSION;
@@ -58,9 +63,9 @@ const LUCKY_DRINKS: Record<FiveElement, Record<Polarity, FortuneItem>> = {
 };
 
 /**
- * V8 keeps the V7 weighted score calculation and restores practical lucky
- * cues requested by users. Lucky item and drink are deterministic symbolic
- * mappings from the target day's five-element and polarity combination.
+ * V9 keeps the V8 fortune score untouched and adds a separate lucky-boost
+ * score. The boost is a Hikiyomi-specific symbolic indicator for applying all
+ * five daily lucky cues; it never rewrites the base fortune score.
  */
 export function createV2Fortune(
   assessment: FoundationAssessment
@@ -73,13 +78,15 @@ export function createV2Fortune(
   const draw = weightedDraw(systems, birthTimeUsed);
   const element = assessment.facts.targetDay.stem.element;
   const polarity = assessment.facts.targetDay.stem.polarity;
+  const luckyBoost = createLuckyBoost(overall, systems, birthTimeUsed);
   const analysis: FortuneAnalysis = {
     ...base.analysis,
     sourceRuleIds: [
       ...base.analysis.sourceRuleIds.filter(
         (ruleId) => ruleId !== "FINAL-SCORE-MAP-003"
       ),
-      "FINAL-SCORE-MAP-004"
+      "FINAL-SCORE-MAP-004",
+      "LUCKY-BOOST-001"
     ],
     slotSummary: confidenceSummary(overall, draw)
   };
@@ -92,6 +99,7 @@ export function createV2Fortune(
     rank: rankFor(overall),
     luckyItem: LUCKY_ITEMS[element][polarity],
     luckyDrink: LUCKY_DRINKS[element][polarity],
+    luckyBoost,
     analysis
   };
 }
@@ -105,6 +113,36 @@ export function fallbackV2Narrative(fortune: V2FortuneDraft): string {
   const drink = fortune.luckyDrink ? `、相性ドリンクは${fortune.luckyDrink.name}` : "";
 
   return `${position}、各占術要素の加重合計は${fortune.overall}点です。今日は「${fortune.machineStyle.name}」と相性が出ています。相性メーカーは${fortune.compatibleManufacturers.join("／")}。ラッキー末尾は${fortune.luckyDigit}、ラッキーカラーは${fortune.luckyColor.name}${item}${drink}です。`;
+}
+
+function createLuckyBoost(
+  overall: number,
+  systems: FortuneSystemReading[],
+  birthTimeUsed: boolean
+): FortuneLuckyBoost {
+  const scores = systemScores(systems);
+  const components = {
+    luckyDigit: boostComponent(scores.numerology),
+    luckyColor: boostComponent(scores.fiveElements),
+    luckyItem: boostComponent((scores.fiveElements + scores.branches) / 2),
+    luckyDrink: boostComponent((scores.fiveElements + scores.numerology) / 2),
+    luckyTime: boostComponent(birthTimeUsed ? scores.birthTime : scores.branches)
+  };
+  const maxPoints = Object.values(components).reduce((sum, value) => sum + value, 0);
+  const appliedPoints = Math.min(maxPoints, Math.max(0, 100 - overall));
+
+  return {
+    maxPoints,
+    appliedPoints,
+    boostedOverall: overall + appliedPoints,
+    components
+  };
+}
+
+function boostComponent(score: number): number {
+  if (score >= 70) return 4;
+  if (score >= 40) return 3;
+  return 2;
 }
 
 function weightedOverall(
