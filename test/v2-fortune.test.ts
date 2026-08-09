@@ -23,7 +23,7 @@ async function resultFor(overrides: Partial<typeof baseInput> = {}) {
   return createV2Fortune(assessment);
 }
 
-describe("V8 final fortune", () => {
+describe("V9 final fortune", () => {
   it("returns exactly the same result for the same assessment input", async () => {
     expect(await resultFor()).toEqual(await resultFor());
   });
@@ -84,12 +84,12 @@ describe("V8 final fortune", () => {
     expect(Math.max(...scores) - Math.min(...scores)).toBeGreaterThanOrEqual(25);
   });
 
-  it("creates the public fields and confidence-focused summary", async () => {
+  it("creates the public fields, lucky cues and separate boost score", async () => {
     const result = await resultFor();
     const slotTypes = ["Aタイプ", "AT機", "スマスロAT機", "メダルAT機"];
 
     expect(result.engineVersion).toBe(V2_ENGINE_VERSION);
-    expect(V2_ENGINE_VERSION).toBe("v2-fortune-8");
+    expect(V2_ENGINE_VERSION).toBe("v2-fortune-9");
     expect(slotTypes).toContain(result.machineStyle.name);
     expect(result.compatibleManufacturers).toHaveLength(2);
     expect(result.compatibleManufacturers[0]).not.toBe(
@@ -99,6 +99,17 @@ describe("V8 final fortune", () => {
     expect(result.luckyDigit).toBeLessThanOrEqual(9);
     expect(result.luckyItem?.name).toBeTruthy();
     expect(result.luckyDrink?.name).toBeTruthy();
+    expect(result.luckyBoost).toBeDefined();
+    expect(result.luckyBoost?.maxPoints).toBeGreaterThanOrEqual(10);
+    expect(result.luckyBoost?.maxPoints).toBeLessThanOrEqual(20);
+    expect(result.luckyBoost?.appliedPoints).toBeGreaterThanOrEqual(0);
+    expect(result.luckyBoost?.appliedPoints).toBeLessThanOrEqual(
+      result.luckyBoost?.maxPoints ?? 0
+    );
+    expect(result.luckyBoost?.boostedOverall).toBe(
+      result.overall + (result.luckyBoost?.appliedPoints ?? 0)
+    );
+    expect(result.luckyBoost?.boostedOverall).toBeLessThanOrEqual(100);
     expect(result.analysis.systems?.length).toBeGreaterThanOrEqual(4);
     expect(result.analysis.slotSummary).toMatch(/ヒキ|アーム|自信|追い風|楽し/);
     expect(result.analysis.slotSummary).not.toContain("各要素の加重合計");
@@ -119,6 +130,7 @@ describe("V8 final fortune", () => {
       "ANNUAL-PERCENTILE-SCALE-001"
     );
     expect(result.analysis.sourceRuleIds).toContain("FINAL-SCORE-MAP-004");
+    expect(result.analysis.sourceRuleIds).toContain("LUCKY-BOOST-001");
     expect(result.analysis.sourceRuleIds).not.toContain("FINAL-SCORE-MAP-003");
     expect(result.analysis.sourceRuleIds).not.toContain("SAFE-GUIDANCE-001");
     expect(result.analysis.sourceIds).not.toContain("WHO-GAMBLING-001");
