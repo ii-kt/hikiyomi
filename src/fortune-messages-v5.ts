@@ -8,6 +8,7 @@ import type {
 const BRAND = "#11153D";
 const BRAND_SOFT = "#20275A";
 const GOLD = "#D6A92F";
+const GOLD_SOFT = "#FBF7EA";
 const MUTED = "#6B7280";
 const BORDER = "#E5E7EB";
 
@@ -118,7 +119,8 @@ export function fortuneMessage(
           ...(result.luckyDrink
             ? [infoRow("相性ドリンク", result.luckyDrink.name, result.luckyDrink.meaning)]
             : []),
-          infoRow("ラッキータイム", result.luckyTime)
+          infoRow("ラッキータイム", result.luckyTime),
+          ...(result.luckyBoost ? [luckyBoostCard(result)] : [])
         ]
       },
       footer: {
@@ -187,6 +189,14 @@ function deepReadingMessage(result: FortuneResult): LineMessage {
     result.luckyDrink ? `ドリンク：${result.luckyDrink.name}` : null
   ].filter((value): value is string => value !== null);
 
+  const boostText = result.luckyBoost
+    ? `\n\n【開運スコア】\nラッキー要素をすべて取り入れた場合：${result.luckyBoost.boostedOverall}/100${
+        result.luckyBoost.appliedPoints > 0
+          ? `（+${result.luckyBoost.appliedPoints}）`
+          : "（すでに上限）"
+      }\n基礎スロ運は${result.overall}/100のままです。`
+    : "";
+
   return withNavigation({
     type: "text",
     text:
@@ -202,6 +212,7 @@ function deepReadingMessage(result: FortuneResult): LineMessage {
       `カラー：${result.luckyColor.name}\n` +
       (luckyExtras.length > 0 ? `${luckyExtras.join("\n")}\n` : "") +
       `時間：${result.luckyTime}` +
+      boostText +
       birthTimeNote
   });
 }
@@ -350,6 +361,71 @@ function luckyDigitCard(value: number): Record<string, unknown> {
         color: MUTED,
         size: "xs",
         margin: "xs",
+        wrap: true
+      }
+    ]
+  };
+}
+
+function luckyBoostCard(result: FortuneResult): Record<string, unknown> {
+  const boost = result.luckyBoost;
+  if (!boost) return { type: "separator", color: BORDER };
+
+  return {
+    type: "box",
+    layout: "vertical",
+    backgroundColor: GOLD_SOFT,
+    cornerRadius: "md",
+    paddingAll: "16px",
+    spacing: "sm",
+    contents: [
+      {
+        type: "text",
+        text: "ラッキー要素をすべて取り入れた場合",
+        color: MUTED,
+        size: "xs",
+        wrap: true
+      },
+      {
+        type: "box",
+        layout: "baseline",
+        contents: [
+          {
+            type: "text",
+            text: "開運スコア",
+            color: BRAND,
+            weight: "bold",
+            size: "md",
+            flex: 3,
+            wrap: true
+          },
+          {
+            type: "text",
+            text: `${boost.boostedOverall} / 100`,
+            color: BRAND,
+            weight: "bold",
+            size: "xl",
+            align: "end",
+            flex: 4,
+            adjustMode: "shrink-to-fit"
+          }
+        ]
+      },
+      {
+        type: "text",
+        text:
+          boost.appliedPoints > 0
+            ? `+${boost.appliedPoints}  ｜  基礎スロ運 ${result.overall}/100`
+            : `基礎スロ運 ${result.overall}/100  ｜  すでに上限`,
+        color: "#8A6A18",
+        size: "xs",
+        wrap: true
+      },
+      {
+        type: "text",
+        text: "今日のラッキーを実践した場合のヒキヨミ独自の開運指標",
+        color: MUTED,
+        size: "xs",
         wrap: true
       }
     ]
