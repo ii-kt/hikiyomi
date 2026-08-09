@@ -27,6 +27,19 @@ export interface FortuneItem {
   meaning: string;
 }
 
+export interface FortuneLuckyBoost {
+  maxPoints: number;
+  appliedPoints: number;
+  boostedOverall: number;
+  components: {
+    luckyDigit: number;
+    luckyColor: number;
+    luckyItem: number;
+    luckyDrink: number;
+    luckyTime: number;
+  };
+}
+
 export type FortuneReadingMode = "quick" | "deep";
 
 export interface FortuneScoreScale {
@@ -76,6 +89,7 @@ export interface FortuneResult {
   luckyColor: FortuneItem;
   luckyItem?: FortuneItem;
   luckyDrink?: FortuneItem;
+  luckyBoost?: FortuneLuckyBoost;
   machineStyle: FortuneItem;
   compatibleManufacturers: [string, string];
   luckyTime: string;
