@@ -112,6 +112,12 @@ export function fortuneMessage(
             result.luckyColor.name,
             result.luckyColor.meaning
           ),
+          ...(result.luckyItem
+            ? [infoRow("ラッキーアイテム", result.luckyItem.name, result.luckyItem.meaning)]
+            : []),
+          ...(result.luckyDrink
+            ? [infoRow("相性ドリンク", result.luckyDrink.name, result.luckyDrink.meaning)]
+            : []),
           infoRow("ラッキータイム", result.luckyTime)
         ]
       },
@@ -176,6 +182,11 @@ function deepReadingMessage(result: FortuneResult): LineMessage {
       ? "\n\n【任意情報】\n出生時刻は未登録です。分かる場合は追加すると、時刻に関する鑑定根拠が増えます。"
       : "";
 
+  const luckyExtras = [
+    result.luckyItem ? `アイテム：${result.luckyItem.name}` : null,
+    result.luckyDrink ? `ドリンク：${result.luckyDrink.name}` : null
+  ].filter((value): value is string => value !== null);
+
   return withNavigation({
     type: "text",
     text:
@@ -189,6 +200,7 @@ function deepReadingMessage(result: FortuneResult): LineMessage {
       `メーカー：${result.compatibleManufacturers.join("／")}\n` +
       `末尾：${result.luckyDigit}\n` +
       `カラー：${result.luckyColor.name}\n` +
+      (luckyExtras.length > 0 ? `${luckyExtras.join("\n")}\n` : "") +
       `時間：${result.luckyTime}` +
       birthTimeNote
   });
